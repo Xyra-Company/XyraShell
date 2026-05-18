@@ -1,4 +1,4 @@
-# 🌀 XyraShell (X77 Engine)
+# XyraShell (X77 Engine)
 
 > **Advanced PHP 8.5 Web Shell for Educational & Security Auditing Purposes**
 
