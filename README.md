@@ -7,137 +7,240 @@
 ![PHP](https://img.shields.io/badge/PHP-8.5.5-cyan)
 ![Security](https://img.shields.io/badge/Security-CSRF+RateLimit-red)
 
-**XyraShell** (berbasis engine X77 v7) adalah web shell berbasis PHP modern yang dioptimalkan untuk **PHP 8.5.5**. Tool ini dirancang khusus untuk keperluan **Educational Cybersecurity Lab**, **Red Team Simulation**, dan **Server Maintenance Audit**.
+**XyraShell** (powered by the X77 Engine v7) is a modern PHP-based web shell optimized for **PHP 8.5.5**.  
+This tool is specifically designed for:
 
-Dengan antarmuka Single Page Application (SPA) yang responsif, XyraShell menyediakan fitur lengkap mulai dari manajemen file, terminal emulator multi-tab, analisis kerentanan real-time (CVE NVD API), hingga forensik log dan audit keamanan sistem.
+- Educational Cybersecurity Labs
+- Red Team Simulations
+- Server Maintenance Audits
+- Security Research Environments
 
----
-
-## ⚠️ DISCLAIMER & LEGAL WARNING
-
-> **PENTING: BACA SEBELUM MENGGUNAKAN**
-
-1.  **Tujuan Edukasi:** Tool ini dikembangkan dan didistribusikan **HANYA** untuk tujuan pendidikan, penelitian keamanan, dan pengujian penetrasi yang sah (*authorized penetration testing*).
-2.  **Tanggung Jawab Pengguna:** Penulis dan Organisasi **TIDAK BERTANGGUNG JAWAB** atas segala kerusakan, kehilangan data, atau tindakan ilegal yang dilakukan menggunakan tool ini.
-3.  **Ilegalitas:** Menggunakan tool ini pada server, jaringan, atau sistem milik orang lain **tanpa izin tertulis** adalah tindakan **ILEGAL** dan melanggar undang-undang siber (termasuk UU ITE di Indonesia dan CFAA di AS).
-4.  **Kompatibilitas:** Tool ini membutuhkan **PHP 8.5.5** atau lebih baru untuk memastikan kompatibilitas fungsi dan keamanan terbaru.
-
-**Dengan menggunakan tool ini, Anda menyetujui bahwa Anda bertanggung jawab penuh atas tindakan Anda.**
+With a responsive Single Page Application (SPA) interface, XyraShell provides advanced features including file management, multi-tab terminal emulation, real-time vulnerability intelligence (NVD API), forensic analysis, and system security auditing.
 
 ---
 
-## 🚀 Fitur Utama
+# ⚠️ DISCLAIMER & LEGAL WARNING
 
-### 🖥️ Advanced Terminal Emulator
-*   **Multi-Tab & Split Screen:** Jalankan multiple command secara paralel dalam satu sesi.
-*   **Autocomplete & History:** Support tab-completion cerdas dan navigasi history.
-*   **ANSI Color Support:** Output warna dari command Linux tetap terjaga dengan sempurna.
-*   **Command Palette:** Akses cepat command via `Ctrl+P`.
-*   **Ghost Text:** Sugesti command berdasarkan history pengetikan.
-*   **Queue System:** Antrian eksekusi command otomatis.
+> **IMPORTANT: READ BEFORE USING**
 
-### 📁 File Manager Pro
-*   **Tree View & Grid/List View:** Navigasi file yang fleksibel dengan preview gambar.
-*   **Bulk Operations:** Hapus atau chmod banyak file sekaligus.
-*   **Zip/Unzip:** Kompresi dan ekstrak arsip langsung dari browser.
-*   **Code Editor:** Edit file dengan syntax highlighting, auto-save, find/replace, dan multi-tab.
-*   **Permission Auditor:** Deteksi file/directory dengan permission berbahaya (777, world-writable).
+1. **Educational Use Only**  
+   This tool is developed and distributed strictly for educational purposes, security research, and authorized penetration testing.
 
-### 🛡️ Security & Forensics Tools
-*   **Log Analyzer:** Deteksi suspicious activity (SQLi, XSS, Scanner, Shell Inject) di access log.
-*   **Brute Force Detector:** Analisis auth log untuk mendeteksi serangan brute force.
-*   **HTTP Header Checker:** Audit security headers (HSTS, CSP, X-Frame-Options) dan berikan skor keamanan.
-*   **SSL/TLS Checker:** Validitas sertifikat SSL dan masa berlaku.
-*   **PHP Security Checklist:** Cek konfigurasi `php.ini` yang tidak aman pada PHP 8.5.5.
-*   **Permission Audit:** Scan directory untuk mencari file dengan permission riskan.
+2. **User Responsibility**  
+   The developers and organization are NOT responsible for any damage, data loss, misuse, or illegal activities performed using this tool.
 
-### 📋 CVE Intelligence (Real-time NVD API)
-*   **CVE Lookup:** Cari detail vulnerabilitas spesifik via ID (contoh: CVE-2024-1234) langsung dari NIST NVD.
-*   **CVE Search:** Cari CVE berdasarkan keyword, tahun, dan severity.
-*   **Recent CVEs:** Lihat 20 CVE terbaru yang diterbitkan oleh NIST secara real-time.
-*   **Severity Highlighting:** Warna otomatis berdasarkan tingkat keparahan (Critical, High, Medium, Low).
+3. **Illegal Usage**  
+   Using this tool on systems, servers, or networks without explicit written authorization is ILLEGAL and may violate cybersecurity laws including:
+   - CFAA (United States)
+   - Computer Misuse Acts
+   - Electronic Information Laws (UU ITE Indonesia)
+   - Other local cybersecurity regulations
 
-### 🌐 Network & OSINT
-*   **Whois Lookup:** Informasi domain.
-*   **Reverse IP:** Mencari hostname dari IP.
-*   **Port Scanner:** TCP Connect scan untuk port umum.
-*   **CMS Detector:** Deteksi WordPress, Joomla, Drupal, Laravel, dll.
+4. **Compatibility**  
+   XyraShell requires **PHP 8.5.5 or newer** for full compatibility and modern security support.
 
-### 🔐 Cryptography & Hashing
-*   **Hash Generator:** MD5, SHA1, SHA256, SHA512, SHA384, RIPEMD160, CRC32B.
-*   **Hash Identifier:** Mendeteksi jenis hash dari string input.
-*   **String Tools:** Base64, URL Encode/Decode, Hex, ROT13, HTML Entities, Reverse, dll.
-
-### 🎨 UI/UX Modern (Hacking Aesthetic)
-*   **Themes:** Dark, Midnight, Forest, Ember, Light, dan Custom Color Picker.
-*   **Responsive:** Bisa digunakan di mobile (dengan keterbatasan).
-*   **Loading Animation:** Animasi startup ala cyberpunk.
-*   **Toast Notifications:** Notifikasi non-intrusif untuk setiap aksi.
+**By using this software, you acknowledge and accept full responsibility for your actions.**
 
 ---
 
-## 📋 Prasyarat
+# 🚀 Main Features
 
-*   **Web Server:** Apache, Nginx, atau IIS.
-*   **PHP Version:** **>= 8.5.5** (Wajib untuk kompatibilitas penuh).
-*   **Extensions:** `proc_open`, `exec`, `shell_exec`, `openssl`, `zip` harus aktif.
-*   **Permissions:** User web server harus memiliki hak baca/tulis pada direktori target.
+## 🖥️ Advanced Terminal Emulator
 
----
-
-## 🛠️ Instalasi & Penggunaan
-
-### 1. Deploy
-Upload file `xyrashell.php` (atau nama file yang sudah di-obfuscate) ke direktori web server target.
-
-### 2. Akses
-Buka browser dan akses URL: http://target-domain.com/path/to/xyrashell.php
-
-
-### 3. Login
-Gunakan kredensial default (**SEGERA GANTI DI KODE SUMBER**):
-*   **Username:** `admin` | **Password:** `admin123`
-*   **Username:** `lab` | **Password:** `cyber2024`
-
-### 4. Konfigurasi Keamanan (Wajib)
-Sebelum deploy di lingkungan produksi/lab:
-1.  Buka file `xyrashell.php`.
-2.  Cari array `$USERS` dan ganti password default dengan hash baru:
-    ```php
-    $USERS = [
-        'admin' => password_hash('PASSWORD_BARU_ANDA', PASSWORD_DEFAULT),
-    ];
-    ```
-3.  (Opsional) Isi `$IP_WHITELIST` dengan IP statis Anda untuk membatasi akses:
-    ```php
-    $IP_WHITELIST = ['192.168.1.100', '10.0.0.5']; 
-    ```
+- Multi-Tab & Split Screen terminal sessions
+- Smart autocomplete & command history
+- ANSI color support
+- Command palette (`Ctrl+P`)
+- Ghost text suggestions
+- Command queue execution system
 
 ---
 
-## 🛡️ Best Practices untuk Red Team / Auditor
+## 📁 Professional File Manager
 
-1.  **Obfuscation:** Pertimbangkan untuk mengobfuscate kode PHP sebelum upload untuk menghindari deteksi oleh WAF/IDS dasar.
-2.  **Rename File:** Jangan gunakan nama `shell.php` atau `backdoor.php`. Gunakan nama yang tidak mencurigakan seperti `config_update.php` atau `theme_editor.php`.
-3.  **Hapus Setelah Pakai:** Segera hapus file dari server setelah audit selesai untuk mengurangi jejak (footprint).
-4.  **Log Cleaning:** Gunakan fitur internal untuk membersihkan log akses jika diperlukan (hati-hati, ini bisa memicu alert SIEM).
-5.  **Session Security:** Tool ini sudah dilengkapi CSRF protection, Rate Limiting, dan Session Fingerprinting. Jangan share session ID Anda.
-
----
-
-## 🤝 Kontribusi
-
-Kontribusi dibuka untuk fitur keamanan tambahan dan perbaikan bug. Silakan fork repository dan buat Pull Request.
+- Tree View & Grid/List modes
+- Bulk file operations
+- Zip & Unzip support
+- Built-in code editor
+- Syntax highlighting
+- Auto-save & multi-tab editing
+- Dangerous permission auditor
 
 ---
 
-## 📄 Lisensi
+## 🛡️ Security & Forensics Tools
 
-Project ini dilisensikan di bawah **MIT License**. Lihat file `LICENSE` untuk detail lebih lanjut.
+- Access log analyzer
+- SQLi/XSS/Shell injection detection
+- Brute-force activity detection
+- Security header auditing
+- SSL/TLS certificate checker
+- PHP security checklist
+- Permission auditing system
 
 ---
 
-**Dikembangkan oleh:** [Xyra-Company/Xyra77]
-**Versi:** 7.0
-**PHP Requirement:** 8.5.5+
-**Last Update:** Mei 2026
+## 📋 CVE Intelligence (NVD API)
+
+- CVE lookup by ID
+- Vulnerability keyword search
+- Real-time recent CVEs
+- Severity-based highlighting
+
+---
+
+## 🌐 Network & OSINT Utilities
+
+- Whois lookup
+- Reverse IP lookup
+- TCP port scanner
+- CMS detection system
+
+---
+
+## 🔐 Cryptography & Hashing
+
+Supported algorithms:
+- MD5
+- SHA1
+- SHA256
+- SHA384
+- SHA512
+- RIPEMD160
+- CRC32B
+
+Additional tools:
+- Hash identifier
+- Base64 tools
+- URL encoder/decoder
+- HEX tools
+- ROT13
+- HTML entities
+- Reverse string utilities
+
+---
+
+## 🎨 Modern Cyberpunk UI/UX
+
+- Multiple themes
+- Responsive SPA interface
+- Startup animations
+- Toast notifications
+- Custom color system
+
+---
+
+# 📋 Requirements
+
+## Web Server
+- Apache
+- Nginx
+- IIS
+
+## PHP Version
+- **PHP >= 8.5.5**
+
+## Required Extensions
+- `proc_open`
+- `exec`
+- `shell_exec`
+- `openssl`
+- `zip`
+
+## Permissions
+The web server user must have read/write access to the target directory.
+
+---
+
+# 🛠️ Installation & Usage
+
+## 1. Deployment
+
+Upload the `xyrashell.php` file (or an obfuscated filename) to the target web server directory.
+
+---
+
+## 2. Access
+
+Open the tool from your browser:
+
+```txt
+http://target-domain.com/path/to/xyrashell.php
+```
+
+---
+
+## 3. Login
+
+Default credentials (**CHANGE IMMEDIATELY**):
+
+- Username: `admin`
+  Password: `admin123`
+
+- Username: `lab`
+  Password: `cyber2024`
+
+---
+
+## 4. Security Configuration (Required)
+
+Before deployment:
+
+1. Open `xyrashell.php`
+2. Locate the `$USERS` array
+3. Replace default passwords with secure hashes
+
+```php
+$USERS = [
+    'admin' => password_hash('YOUR_NEW_PASSWORD', PASSWORD_DEFAULT),
+];
+```
+
+(Optional) Restrict access using IP whitelist:
+
+```php
+$IP_WHITELIST = ['192.168.1.100', '10.0.0.5'];
+```
+
+---
+
+# 🛡️ Best Practices for Red Team / Auditors
+
+1. Obfuscate the PHP source before deployment
+2. Avoid suspicious filenames like:
+   - `shell.php`
+   - `backdoor.php`
+
+3. Remove the file immediately after audits
+4. Minimize operational footprint
+5. Avoid exposing session identifiers
+6. Use secure deployment environments only
+
+---
+
+# 🤝 Contributions
+
+Contributions are welcome for:
+- Security improvements
+- Bug fixes
+- UI/UX enhancements
+- Detection modules
+- Performance optimizations
+
+Please fork the repository and submit a Pull Request.
+
+---
+
+# 📄 License
+
+This project is licensed under the **MIT License**.  
+See the `LICENSE` file for more information.
+
+---
+
+## Developer Information
+
+**Developed by:** Xyra-Company / Xyra77  
+**Version:** 7.0  
+**PHP Requirement:** 8.5.5+  
+**Last Updated:** May 2026
