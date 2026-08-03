@@ -2,7 +2,7 @@
 session_start();
 header_remove('X-Powered-By');
 
-// ── Config ─────────────────────────────────────────────────────
+// -- Config -----------------------------------------------------
 $USERS = [
     'admin' => password_hash('admin123', PASSWORD_DEFAULT),
     'lab'   => password_hash('cyber2024', PASSWORD_DEFAULT),
@@ -13,12 +13,12 @@ $SESSION_TIMEOUT = 1800;
 $IP_WHITELIST    = [];
 $RATE_LIMITS     = ['exec'=>60,'deepsearch'=>5,'portscan'=>3];
 
-// ── IP Whitelist ───────────────────────────────────────────────
+// -- IP Whitelist -----------------------------------------------
 if (!empty($IP_WHITELIST) && !in_array($_SERVER['REMOTE_ADDR'], $IP_WHITELIST)) {
     http_response_code(403); die('403 Forbidden');
 }
 
-// ── Session timeout + fingerprint ─────────────────────────────
+// -- Session timeout + fingerprint -----------------------------
 if (!empty($_SESSION['auth'])) {
     if (time() - ($_SESSION['last_active'] ?? 0) > $SESSION_TIMEOUT) {
         session_destroy(); header('Location: ' . $_SERVER['REQUEST_URI']); exit;
@@ -36,10 +36,10 @@ if (isset($_GET['logout'])) {
     header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?')); exit;
 }
 
-// ── CSRF ───────────────────────────────────────────────────────
+// -- CSRF -------------------------------------------------------
 if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
 
-// ── Login ──────────────────────────────────────────────────────
+// -- Login ------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login_user'])) {
     $ip  = $_SERVER['REMOTE_ADDR'];
     $att = $_SESSION['login_attempts'][$ip] ?? 0;
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login_user'])) {
     }
 }
 
-// ── Login page ─────────────────────────────────────────────────
+// -- Login page -------------------------------------------------
 if (empty($_SESSION['auth'])) {
     $err = $loginErr ?? '';
 ?><!DOCTYPE html>
@@ -132,7 +132,7 @@ setInterval(draw,60);
 </script></body></html>
 <?php exit; }
 
-// ── Helpers ────────────────────────────────────────────────────
+// -- Helpers ----------------------------------------------------
 function esc($s){return htmlspecialchars((string)$s,ENT_QUOTES,'UTF-8');}
 function resolveFile($raw,$cwd){return realpath($raw)?:realpath($cwd.'/'.$raw)?:realpath($cwd.'/'.basename($raw));}
 function checkCSRF(){if(($_POST['csrf']??'')!==($_SESSION['csrf']??'x')){echo json_encode(['error'=>'CSRF']);exit;}}
@@ -143,7 +143,7 @@ function rateLimit($action){
     $hits[]=$now;$_SESSION['rl_'.$action]=array_values($hits);
 }
 
-// ── AJAX ───────────────────────────────────────────────────────
+// -- AJAX -------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     $action = $_POST['action'];
@@ -220,23 +220,23 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
     if ($action==='sysinfo'){$info=['PHP'=>PHP_VERSION,'OS'=>php_uname(),'Server'=>$_SERVER['SERVER_SOFTWARE']??'N/A','CWD'=>$cwd,'User'=>get_current_user().' (uid='.getmyuid().')','Host'=>gethostname(),'IP'=>gethostbyname(gethostname()),'Disk Free'=>round(disk_free_space('/')/1073741824,2).' GB','Disk Total'=>round(disk_total_space('/')/1073741824,2).' GB','Memory'=>ini_get('memory_limit'),'Upload Max'=>ini_get('upload_max_filesize'),'Basedir'=>ini_get('open_basedir')?:'-'];echo json_encode(['out'=>implode("\n",array_map(fn($k,$v)=>str_pad($k,12).": $v",array_keys($info),$info))]);exit;}
     if ($action==='stats'){$df=disk_free_space('/');$dt=disk_total_space('/');$ut=@file_get_contents('/proc/uptime')?:'0';$ld=@file_get_contents('/proc/loadavg')?:'N/A';$ex=get_loaded_extensions();sort($ex);$ps=shell_exec('ps aux --no-headers 2>/dev/null | head -15')?:'N/A';echo json_encode(['disk_free'=>$df,'disk_total'=>$dt,'uptime'=>$ut,'load'=>$ld,'extensions'=>$ex,'processes'=>$ps,'php'=>PHP_VERSION]);exit;}
 
-    // ── Deep tools ─────────────────────────────────────────────
+    // -- Deep tools ---------------------------------------------
     if ($action==='deepsearch'){rateLimit('deepsearch');$query=trim($_POST['query']??'');$dir=realpath($_POST['dir']??$cwd)?:$cwd;$type=$_POST['stype']??'content';$ext=trim($_POST['ext']??'','. ');if(!$query){echo json_encode(['out'=>'Query kosong']);exit;}$results=[];$count=0;$max=200;function dsearch($dir,$query,$type,$ext,&$res,&$cnt,$max){if($cnt>=$max)return;$items=@scandir($dir);if(!$items)return;foreach($items as $f){if($f==='.'||$f==='..')continue;$fp=$dir.'/'.$f;if(is_dir($fp)&&!is_link($fp)){dsearch($fp,$query,$type,$ext,$res,$cnt,$max);continue;}if(!is_file($fp))continue;if($ext&&strtolower(pathinfo($fp,PATHINFO_EXTENSION))!==strtolower($ext))continue;if($type==='name'&&stripos($f,$query)!==false){$res[]='📄 '.$fp;$cnt++;}elseif($type==='content'&&is_readable($fp)&&filesize($fp)<512*1024){$c=@file_get_contents($fp);if($c!==false&&stripos($c,$query)!==false){foreach(explode("\n",$c) as $ln=>$line){if(stripos($line,$query)!==false)$res[]="📄 $fp [L".($ln+1)."]: ".trim(substr($line,0,80));if($cnt++>=$max)return;}}}elseif($type==='perm'){$p=substr(sprintf('%o',fileperms($fp)),-4);if(str_contains($p,$query))$res[]="📄 $fp ($p)";}}}dsearch($dir,$query,$type,$ext,$results,$count,$max);$out=$results?implode("\n",$results):"Tidak ditemukan: '$query'";if($count>=$max)$out.="\n⚠ Dibatasi $max.";echo json_encode(['out'=>$out]);exit;}
-    if ($action==='deepscan'){$dir=realpath($_POST['dir']??$cwd)?:$cwd;$maxD=intval($_POST['depth']??3);$res=[];$stats=['dirs'=>0,'files'=>0,'size'=>0,'execs'=>0,'writable'=>0];function dscn($dir,$d,$maxD,&$res,&$stats){if($d>$maxD)return;$items=@scandir($dir);if(!$items)return;$ind=str_repeat('  ',$d);foreach($items as $f){if($f==='.'||$f==='..')continue;$fp=$dir.'/'.$f;$p=substr(sprintf('%o',fileperms($fp)),-4);if(is_dir($fp)&&!is_link($fp)){$stats['dirs']++;$res[]="$ind📁 $f/ ($p)";dscn($fp,$d+1,$maxD,$res,$stats);}elseif(is_file($fp)){$sz=filesize($fp);$stats['files']++;$stats['size']+=$sz;if(is_executable($fp))$stats['execs']++;if(is_writable($fp))$stats['writable']++;$res[]="$ind📄 $f ($p, ".round($sz/1024,1)."KB)";}}}dscn($dir,0,$maxD,$res,$stats);$h="Deep Scan: $dir\nDirs:{$stats['dirs']} Files:{$stats['files']} Total:".round($stats['size']/1048576,2)."MB Exec:{$stats['execs']} Writable:{$stats['writable']}\n".str_repeat('─',50)."\n";echo json_encode(['out'=>$h.implode("\n",$res)]);exit;}
-    if ($action==='deepanalysis'){$dir=realpath($_POST['dir']??$cwd)?:$cwd;$extC=[];$largest=[];$oldest=[];$newest=[];$total=0;$totalF=0;function danalyze($dir,&$extC,&$largest,&$oldest,&$newest,&$total,&$totalF){$items=@scandir($dir);if(!$items)return;foreach($items as $f){if($f==='.'||$f==='..')continue;$fp=$dir.'/'.$f;if(is_dir($fp)&&!is_link($fp)){danalyze($fp,$extC,$largest,$oldest,$newest,$total,$totalF);continue;}if(!is_file($fp))continue;$sz=filesize($fp);$mt=filemtime($fp);$ext=strtolower(pathinfo($fp,PATHINFO_EXTENSION))?:'(no ext)';$totalF++;$total+=$sz;$extC[$ext]=($extC[$ext]??0)+1;$largest[]=['path'=>$fp,'size'=>$sz];usort($largest,fn($a,$b)=>$b['size']-$a['size']);if(count($largest)>10)array_pop($largest);$oldest[]=['path'=>$fp,'time'=>$mt];usort($oldest,fn($a,$b)=>$a['time']-$b['time']);if(count($oldest)>5)array_pop($oldest);$newest[]=['path'=>$fp,'time'=>$mt];usort($newest,fn($a,$b)=>$b['time']-$a['time']);if(count($newest)>5)array_pop($newest);}}danalyze($dir,$extC,$largest,$oldest,$newest,$total,$totalF);arsort($extC);$out="═══ Deep Analysis: $dir ═══\nTotal: $totalF files, ".round($total/1048576,2)."MB\n\n── Top Extensions ──\n";$i=0;foreach($extC as $e=>$c){$out.="  .$e: $c\n";if(++$i>=10)break;}$out.="\n── Largest ──\n";foreach($largest as $f)$out.="  ".round($f['size']/1024,1)."KB → ".basename($f['path'])."\n";$out.="\n── Newest ──\n";foreach($newest as $f)$out.="  ".date('Y-m-d H:i',$f['time'])." → ".basename($f['path'])."\n";$out.="\n── Oldest ──\n";foreach($oldest as $f)$out.="  ".date('Y-m-d H:i',$f['time'])." → ".basename($f['path'])."\n";echo json_encode(['out'=>$out]);exit;}
+    if ($action==='deepscan'){$dir=realpath($_POST['dir']??$cwd)?:$cwd;$maxD=intval($_POST['depth']??3);$res=[];$stats=['dirs'=>0,'files'=>0,'size'=>0,'execs'=>0,'writable'=>0];function dscn($dir,$d,$maxD,&$res,&$stats){if($d>$maxD)return;$items=@scandir($dir);if(!$items)return;$ind=str_repeat('  ',$d);foreach($items as $f){if($f==='.'||$f==='..')continue;$fp=$dir.'/'.$f;$p=substr(sprintf('%o',fileperms($fp)),-4);if(is_dir($fp)&&!is_link($fp)){$stats['dirs']++;$res[]="$ind📁 $f/ ($p)";dscn($fp,$d+1,$maxD,$res,$stats);}elseif(is_file($fp)){$sz=filesize($fp);$stats['files']++;$stats['size']+=$sz;if(is_executable($fp))$stats['execs']++;if(is_writable($fp))$stats['writable']++;$res[]="$ind📄 $f ($p, ".round($sz/1024,1)."KB)";}}}dscn($dir,0,$maxD,$res,$stats);$h="Deep Scan: $dir\nDirs:{$stats['dirs']} Files:{$stats['files']} Total:".round($stats['size']/1048576,2)."MB Exec:{$stats['execs']} Writable:{$stats['writable']}\n".str_repeat('-',50)."\n";echo json_encode(['out'=>$h.implode("\n",$res)]);exit;}
+    if ($action==='deepanalysis'){$dir=realpath($_POST['dir']??$cwd)?:$cwd;$extC=[];$largest=[];$oldest=[];$newest=[];$total=0;$totalF=0;function danalyze($dir,&$extC,&$largest,&$oldest,&$newest,&$total,&$totalF){$items=@scandir($dir);if(!$items)return;foreach($items as $f){if($f==='.'||$f==='..')continue;$fp=$dir.'/'.$f;if(is_dir($fp)&&!is_link($fp)){danalyze($fp,$extC,$largest,$oldest,$newest,$total,$totalF);continue;}if(!is_file($fp))continue;$sz=filesize($fp);$mt=filemtime($fp);$ext=strtolower(pathinfo($fp,PATHINFO_EXTENSION))?:'(no ext)';$totalF++;$total+=$sz;$extC[$ext]=($extC[$ext]??0)+1;$largest[]=['path'=>$fp,'size'=>$sz];usort($largest,fn($a,$b)=>$b['size']-$a['size']);if(count($largest)>10)array_pop($largest);$oldest[]=['path'=>$fp,'time'=>$mt];usort($oldest,fn($a,$b)=>$a['time']-$b['time']);if(count($oldest)>5)array_pop($oldest);$newest[]=['path'=>$fp,'time'=>$mt];usort($newest,fn($a,$b)=>$b['time']-$a['time']);if(count($newest)>5)array_pop($newest);}}danalyze($dir,$extC,$largest,$oldest,$newest,$total,$totalF);arsort($extC);$out="═══ Deep Analysis: $dir ═══\nTotal: $totalF files, ".round($total/1048576,2)."MB\n\n-- Top Extensions --\n";$i=0;foreach($extC as $e=>$c){$out.="  .$e: $c\n";if(++$i>=10)break;}$out.="\n-- Largest --\n";foreach($largest as $f)$out.="  ".round($f['size']/1024,1)."KB → ".basename($f['path'])."\n";$out.="\n-- Newest --\n";foreach($newest as $f)$out.="  ".date('Y-m-d H:i',$f['time'])." → ".basename($f['path'])."\n";$out.="\n-- Oldest --\n";foreach($oldest as $f)$out.="  ".date('Y-m-d H:i',$f['time'])." → ".basename($f['path'])."\n";echo json_encode(['out'=>$out]);exit;}
     if ($action==='deepmonitor'){$dir=realpath($_POST['dir']??$cwd)?:$cwd;$snap=[];function dsnap($dir,&$snap){$sc=@scandir($dir);if(!$sc)return;foreach($sc as $f){if($f==='.'||$f==='..')continue;$fp=$dir.'/'.$f;$snap[$fp]=['mtime'=>@filemtime($fp),'size'=>@filesize($fp)];if(is_dir($fp)&&!is_link($fp))dsnap($fp,$snap);}}dsnap($dir,$snap);$_SESSION['monitor_snap'][$dir]=$snap;echo json_encode(['ok'=>true,'msg'=>'Snapshot: '.count($snap).' items']);exit;}
     if ($action==='deepmonitor_check'){$dir=realpath($_POST['dir']??$cwd)?:$cwd;$old=$_SESSION['monitor_snap'][$dir]??[];if(!$old){echo json_encode(['out'=>'Belum ada snapshot.']);exit;}$new=[];function dsnap2($dir,&$snap){$sc=@scandir($dir);if(!$sc)return;foreach($sc as $f){if($f==='.'||$f==='..')continue;$fp=$dir.'/'.$f;$snap[$fp]=['mtime'=>@filemtime($fp),'size'=>@filesize($fp)];if(is_dir($fp)&&!is_link($fp))dsnap2($fp,$snap);}}dsnap2($dir,$new);$changes=[];foreach($new as $fp=>$info){if(!isset($old[$fp]))$changes[]="➕ BARU:    $fp";elseif($info['mtime']!==$old[$fp]['mtime']||$info['size']!==$old[$fp]['size'])$changes[]="✏️  BERUBAH: $fp";}foreach($old as $fp=>$info){if(!isset($new[$fp]))$changes[]="➖ HAPUS:   $fp";}echo json_encode(['out'=>$changes?"Perubahan:\n".implode("\n",$changes):"✅ Tidak ada perubahan."]);exit;}
 
-    // ── Security ────────────────────────────────────────────────
+    // -- Security ------------------------------------------------
     if ($action==='cve_lookup'){$id=strtoupper(trim($_POST['cve_id']??''));if(!preg_match('/^CVE-\d{4}-\d{4,}$/',$id)){echo json_encode(['ok'=>false,'out'=>'Format tidak valid. Contoh: -2024-1234']);exit;}$url="https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={$id}";$ctx=stream_context_create(['http'=>['timeout'=>8,'user_agent'=>'Mozilla/5.0','header'=>'Accept: application/json']]);$raw=@file_get_contents($url,false,$ctx);if(!$raw){echo json_encode(['ok'=>false,'out'=>"Gagal fetch NVD API."]);exit;}$data=json_decode($raw,true);if(empty($data['vulnerabilities'])){echo json_encode(['ok'=>false,'out'=>"CVE tidak ditemukan: $id"]);exit;}$vuln=$data['vulnerabilities'][0]['cve'];$desc='';foreach(($vuln['descriptions']??[]) as $d){if($d['lang']==='en'){$desc=$d['value'];break;}}$cvss='N/A';$sev='N/A';$vec='N/A';$metrics=$vuln['metrics']??[];foreach(['cvssMetricV31','cvssMetricV30','cvssMetricV2'] as $mk){if(!empty($metrics[$mk][0])){$m=$metrics[$mk][0];$cvss=$m['cvssData']['baseScore']??'N/A';$sev=$m['cvssData']['baseSeverity']??($m['baseSeverity']??'N/A');$vec=$m['cvssData']['vectorString']??'N/A';break;}}$refs=array_slice(array_map(fn($r)=>$r['url']??'',$vuln['references']??[]),0,5);$pub=substr($vuln['published']??'',0,10);$mod=substr($vuln['lastModified']??'',0,10);$weak=implode(', ',array_map(fn($w)=>$w['description'][0]['value']??'',$vuln['weaknesses']??[]));$out="╔══════════════════════════════════════╗\n║  {$id}\n╚══════════════════════════════════════╝\n\nCVSS Score : {$cvss}\nSeverity   : {$sev}\nVector     : {$vec}\nPublished  : {$pub}\nModified   : {$mod}\n";if($weak)$out.="Weakness   : {$weak}\n";$out.="\nDescription:\n".wordwrap($desc,70,"\n",true);if($refs)$out.="\n\nReferences:\n".implode("\n",$refs);echo json_encode(['ok'=>true,'out'=>$out,'severity'=>strtolower($sev)]);exit;}
-    if ($action==='cve_search'){$kw=urlencode(trim($_POST['keyword']??''));$yr=intval($_POST['year']??0);$sev=trim($_POST['severity']??'');if(!$kw){echo json_encode(['ok'=>false,'out'=>'Masukkan keyword']);exit;}$url="https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={$kw}&resultsPerPage=15";if($yr>2000)$url.="&pubStartDate={$yr}-01-01T00:00:00.000&pubEndDate={$yr}-12-31T23:59:59.999";$ctx=stream_context_create(['http'=>['timeout'=>10,'user_agent'=>'Mozilla/5.0','header'=>'Accept: application/json']]);$raw=@file_get_contents($url,false,$ctx);if(!$raw){echo json_encode(['ok'=>false,'out'=>'Gagal fetch NVD API']);exit;}$data=json_decode($raw,true);$total=$data['totalResults']??0;$items=$data['vulnerabilities']??[];if(!$items){echo json_encode(['ok'=>false,'out'=>"Tidak ada hasil"]);exit;}$out="Hasil: {$total} CVE untuk '".urldecode($kw)."'\n".str_repeat('─',50)."\n\n";foreach($items as $item){$c=$item['cve'];$id=$c['id'];$desc='';foreach(($c['descriptions']??[]) as $d){if($d['lang']==='en'){$desc=substr($d['value'],0,100).'...';break;}}$score='N/A';$sev2='N/A';$mt=$c['metrics']??[];foreach(['cvssMetricV31','cvssMetricV30','cvssMetricV2'] as $mk){if(!empty($mt[$mk][0])){$score=$mt[$mk][0]['cvssData']['baseScore']??'N/A';$sev2=$mt[$mk][0]['cvssData']['baseSeverity']??($mt[$mk][0]['baseSeverity']??'N/A');break;}}if($sev&&strtoupper($sev)!==strtoupper($sev2))continue;$pub=substr($c['published']??'',0,10);$out.="[{$id}] Score:{$score} ({$sev2}) | {$pub}\n{$desc}\n\n";}echo json_encode(['ok'=>true,'out'=>$out]);exit;}
+    if ($action==='cve_search'){$kw=urlencode(trim($_POST['keyword']??''));$yr=intval($_POST['year']??0);$sev=trim($_POST['severity']??'');if(!$kw){echo json_encode(['ok'=>false,'out'=>'Masukkan keyword']);exit;}$url="https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch={$kw}&resultsPerPage=15";if($yr>2000)$url.="&pubStartDate={$yr}-01-01T00:00:00.000&pubEndDate={$yr}-12-31T23:59:59.999";$ctx=stream_context_create(['http'=>['timeout'=>10,'user_agent'=>'Mozilla/5.0','header'=>'Accept: application/json']]);$raw=@file_get_contents($url,false,$ctx);if(!$raw){echo json_encode(['ok'=>false,'out'=>'Gagal fetch NVD API']);exit;}$data=json_decode($raw,true);$total=$data['totalResults']??0;$items=$data['vulnerabilities']??[];if(!$items){echo json_encode(['ok'=>false,'out'=>"Tidak ada hasil"]);exit;}$out="Hasil: {$total} CVE untuk '".urldecode($kw)."'\n".str_repeat('-',50)."\n\n";foreach($items as $item){$c=$item['cve'];$id=$c['id'];$desc='';foreach(($c['descriptions']??[]) as $d){if($d['lang']==='en'){$desc=substr($d['value'],0,100).'...';break;}}$score='N/A';$sev2='N/A';$mt=$c['metrics']??[];foreach(['cvssMetricV31','cvssMetricV30','cvssMetricV2'] as $mk){if(!empty($mt[$mk][0])){$score=$mt[$mk][0]['cvssData']['baseScore']??'N/A';$sev2=$mt[$mk][0]['cvssData']['baseSeverity']??($mt[$mk][0]['baseSeverity']??'N/A');break;}}if($sev&&strtoupper($sev)!==strtoupper($sev2))continue;$pub=substr($c['published']??'',0,10);$out.="[{$id}] Score:{$score} ({$sev2}) | {$pub}\n{$desc}\n\n";}echo json_encode(['ok'=>true,'out'=>$out]);exit;}
     if ($action==='cve_recent'){$url="https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=20";$ctx=stream_context_create(['http'=>['timeout'=>10,'user_agent'=>'Mozilla/5.0','header'=>'Accept: application/json']]);$raw=@file_get_contents($url,false,$ctx);if(!$raw){echo json_encode(['ok'=>false,'out'=>'Gagal fetch NVD API']);exit;}$data=json_decode($raw,true);$items=$data['vulnerabilities']??[];$out="═══ 20 CVE TERBARU (NVD) ═══\n\n";foreach($items as $item){$c=$item['cve'];$id=$c['id'];$desc='';foreach(($c['descriptions']??[]) as $d){if($d['lang']==='en'){$desc=substr($d['value'],0,80).'...';break;}}$score='N/A';$sev='N/A';$mt=$c['metrics']??[];foreach(['cvssMetricV31','cvssMetricV30','cvssMetricV2'] as $mk){if(!empty($mt[$mk][0])){$score=$mt[$mk][0]['cvssData']['baseScore']??'N/A';$sev=$mt[$mk][0]['cvssData']['baseSeverity']??($mt[$mk][0]['baseSeverity']??'N/A');break;}}$pub=substr($c['published']??'',0,10);$out.="[{$id}] {$score} ({$sev}) | {$pub}\n{$desc}\n\n";}echo json_encode(['ok'=>true,'out'=>$out]);exit;}
-    if ($action==='perm_audit'){$dir=realpath($_POST['dir']??$cwd)?:$cwd;$issues=[];$checked=0;function paudit($dir,&$issues,&$checked){$items=@scandir($dir);if(!$items)return;foreach($items as $f){if($f==='.'||$f==='..')continue;$fp=$dir.'/'.$f;$perms=fileperms($fp);$oct=substr(sprintf('%o',$perms),-4);$checked++;if(is_file($fp)){if(($perms&0777)===0777)$issues[]=["🔴 WORLD-WRITABLE+EXEC",$fp,$oct];elseif(($perms&0002))$issues[]=["🟠 WORLD-WRITABLE",$fp,$oct];elseif(is_executable($fp)&&!in_array(pathinfo($fp,PATHINFO_EXTENSION),['sh','py','rb','pl','cgi']))$issues[]=["🟡 UNEXPECTED EXEC",$fp,$oct];}if(is_dir($fp)&&!is_link($fp)){if(($perms&0002))$issues[]=["🟠 WORLD-WRITABLE DIR",$fp,$oct];paudit($fp,$issues,$checked);}}}paudit($dir,$issues,$checked);$out="Permission Audit: {$dir}\nChecked: {$checked} | Issues: ".count($issues)."\n".str_repeat('─',50)."\n\n";if($issues)foreach($issues as[$type,$path,$oct])$out.="{$type}\n  {$path}\n  Perms: {$oct}\n\n";else $out.="✅ Tidak ada issue.\n";echo json_encode(['ok'=>true,'out'=>$out,'count'=>count($issues)]);exit;}
-    if ($action==='log_analyze'){$lf=$_POST['logfile']??'/var/log/apache2/access.log';$file=realpath($lf);if(!$file||!is_readable($file)){echo json_encode(['ok'=>false,'out'=>"Tidak bisa baca: {$lf}"]);exit;}$lines=array_slice(file($file),-2000);$suspicious=[];$ips=[];$codes=[];$patterns=['SQL Injection'=>'/(\bunion\b|\bselect\b|\bdrop\b|0x[0-9a-f]+)/i','XSS'=>'/<script|javascript:|onerror=/i','Path Traversal'=>'/\.\.\/|%2e%2e/i','Shell Inject'=>'/;(ls|cat|wget|curl|bash|nc)\s/i','Scanner'=>'/sqlmap|nmap|nikto|masscan|dirbuster|gobuster/i'];foreach($lines as $ln=>$line){preg_match('/^(\S+)/',$line,$m);$ip=$m[1]??'';if($ip)$ips[$ip]=($ips[$ip]??0)+1;preg_match('/\s(\d{3})\s/',$line,$cm);$code=$cm[1]??'';if($code)$codes[$code]=($codes[$code]??0)+1;foreach($patterns as $label=>$pat){if(preg_match($pat,$line)){$suspicious[]=["line"=>$ln+1,"label"=>$label,"ip"=>$ip,"snip"=>substr(trim($line),0,100)];break;}}}arsort($ips);arsort($codes);$out="Log: {$lf}\nLines: ".count($lines)." | Suspicious: ".count($suspicious)."\n".str_repeat('─',50)."\n\n── Top IPs ──\n";$i=0;foreach($ips as $ip=>$cnt){$out.="  {$ip}: {$cnt}\n";if(++$i>=10)break;}$out.="\n── Status ──\n";foreach($codes as $c=>$cnt)$out.="  {$c}: {$cnt}\n";if($suspicious){$out.="\n── Suspicious ──\n";foreach(array_slice($suspicious,0,30) as $s)$out.="[L{$s['line']}] {$s['label']} | {$s['ip']}\n  {$s['snip']}\n\n";}else $out.="\n✅ Bersih.\n";echo json_encode(['ok'=>true,'out'=>$out,'count'=>count($suspicious)]);exit;}
-    if ($action==='http_headers'){$url=filter_var($_POST['url']??'',FILTER_VALIDATE_URL);if(!$url){echo json_encode(['ok'=>false,'out'=>'URL tidak valid']);exit;}$ctx=stream_context_create(['http'=>['timeout'=>6,'user_agent'=>'Mozilla/5.0','method'=>'HEAD']]);@file_get_contents($url,false,$ctx);$headers=$http_response_header??[];$hmap=[];foreach($headers as $h){$p=strpos($h,':');if($p!==false)$hmap[strtolower(trim(substr($h,0,$p)))]=trim(substr($h,$p+1));}$checks=['strict-transport-security'=>['HSTS','Proteksi HTTPS'],'content-security-policy'=>['CSP','Cegah XSS'],'x-frame-options'=>['X-Frame','Cegah Clickjacking'],'x-content-type-options'=>['X-Content-Type','Cegah MIME sniff'],'referrer-policy'=>['Referrer','Kontrol referrer'],'permissions-policy'=>['Permissions','Batasi browser API'],'x-xss-protection'=>['XSS-Prot','Filter XSS']];$out="HTTP Headers: {$url}\n".str_repeat('─',50)."\n\n";$score=0;foreach($checks as $k=>[$label,$desc]){$ok=isset($hmap[$k]);if($ok)$score++;$val=$ok?substr($hmap[$k],0,60):'MISSING';$out.=($ok?'✅':'❌')." {$label}\n   {$desc}\n   {$val}\n\n";}$total=count($checks);$pct=round($score/$total*100);$out.=str_repeat('─',50)."\nScore: {$score}/{$total} ({$pct}%) — ".($pct>=80?'GOOD':($pct>=50?'FAIR':'POOR'))."\n";if(!empty($hmap['server']))$out.="\nServer: ".$hmap['server']." ← sebaiknya disembunyikan\n";echo json_encode(['ok'=>true,'out'=>$out,'score'=>$score,'total'=>$total]);exit;}
-    if ($action==='ssl_info'){$host=preg_replace('/[^a-zA-Z0-9.\-]/','',$_POST['host']??'');if(!$host){echo json_encode(['ok'=>false,'out'=>'Host tidak valid']);exit;}$ctx=stream_context_create(['ssl'=>['verify_peer'=>false,'verify_peer_name'=>false,'capture_peer_cert'=>true]]);$sock=@stream_socket_client("ssl://{$host}:443",$e,$es,5,STREAM_CLIENT_CONNECT,$ctx);if(!$sock){echo json_encode(['ok'=>false,'out'=>"Tidak bisa konek: {$es}"]);exit;}$params=stream_context_get_params($sock);$cert=openssl_x509_parse($params['options']['ssl']['peer_certificate']??'');fclose($sock);if(!$cert){echo json_encode(['ok'=>false,'out'=>'Gagal parse cert']);exit;}$from=date('Y-m-d H:i:s',$cert['validFrom_time_t']??0);$to=date('Y-m-d H:i:s',$cert['validTo_time_t']??0);$days=ceil(($cert['validTo_time_t']-time())/86400);$subject=implode(', ',array_map(fn($k,$v)=>"$k=$v",array_keys($cert['subject']??[]),$cert['subject']??[]));$issuer=implode(', ',array_map(fn($k,$v)=>"$k=$v",array_keys($cert['issuer']??[]),$cert['issuer']??[]));$san=$cert['extensions']['subjectAltName']??'N/A';$out="SSL/TLS: {$host}\n".str_repeat('─',50)."\n\nSubject   : {$subject}\nIssuer    : {$issuer}\nValid From: {$from}\nValid To  : {$to}\nExpires   : ".($days>0?"{$days} hari lagi":"EXPIRED!")."\nSAN       : {$san}\n\n".($days<=0?"🔴 EXPIRED!":($days<=30?"🟠 Hampir expired!":"✅ Valid"))."\n";echo json_encode(['ok'=>true,'out'=>$out,'days'=>$days]);exit;}
-    if ($action==='bruteforce_detect'){$lf=$_POST['logfile']??'/var/log/auth.log';$file=realpath($lf);if(!$file||!is_readable($file)){echo json_encode(['ok'=>false,'out'=>"Tidak bisa baca: {$lf}"]);exit;}$lines=array_slice(file($file),-3000);$fails=[];$success=[];foreach($lines as $line){if(preg_match('/Failed password.*from (\S+)/i',$line,$m))$fails[$m[1]]=($fails[$m[1]]??0)+1;if(preg_match('/Accepted password.*from (\S+)/i',$line,$m))$success[$m[1]]=($success[$m[1]]??0)+1;}arsort($fails);$out="Brute Force: {$lf}\nLines: ".count($lines)."\n".str_repeat('─',50)."\n\n── Failed ──\n";$att=0;foreach($fails as $ip=>$cnt){$flag=$cnt>=10?'🔴 CRITICAL':($cnt>=5?'🟠 HIGH':'🟡 LOW');$out.="{$flag} {$ip}: {$cnt}";if(isset($success[$ip]))$out.=" ← ⚠ LOGIN SUKSES!";$out.="\n";if($cnt>=5)$att++;}if(!$fails)$out.="✅ Tidak ada failed login.\n";$out.="\n── Successful ──\n";foreach($success as $ip=>$cnt)$out.="  {$ip}: {$cnt}\n";if(!$success)$out.="  (kosong)\n";$out.="\nPotential Attackers (≥5): {$att}";echo json_encode(['ok'=>true,'out'=>$out,'attackers'=>$att]);exit;}
-    if ($action==='sec_checklist'){$checks=[['expose_php off',ini_get('expose_php')==='0'||ini_get('expose_php')==='Off'||ini_get('expose_php')===''],['display_errors off',ini_get('display_errors')==='0'||ini_get('display_errors')==='Off'],['allow_url_fopen off',ini_get('allow_url_fopen')==='0'||ini_get('allow_url_fopen')==='Off'],['allow_url_include off',ini_get('allow_url_include')==='0'||ini_get('allow_url_include')==='Off'],['open_basedir set',!empty(ini_get('open_basedir'))],['cookie_httponly on',ini_get('session.cookie_httponly')==='1'],['cookie_secure on',ini_get('session.cookie_secure')==='1'],['strict_mode on',ini_get('session.use_strict_mode')==='1'],['PHP >= 8.1',version_compare(PHP_VERSION,'8.1.0','>=')],['disable_functions set',!empty(ini_get('disable_functions'))],['CWD not world-writable',!(fileperms($cwd)&0002)]];$passed=0;$out="PHP Security Checklist\n".str_repeat('─',50)."\n\n";foreach($checks as[$label,$ok]){$out.=($ok?'✅':'❌')." {$label}\n";if($ok)$passed++;}$total=count($checks);$pct=round($passed/$total*100);$out.="\n".str_repeat('─',50)."\nScore: {$passed}/{$total} ({$pct}%) — ".($pct>=80?'SECURE':($pct>=60?'MODERATE':'NEEDS ATTENTION'));echo json_encode(['ok'=>true,'out'=>$out,'score'=>$passed,'total'=>$total]);exit;}
+    if ($action==='perm_audit'){$dir=realpath($_POST['dir']??$cwd)?:$cwd;$issues=[];$checked=0;function paudit($dir,&$issues,&$checked){$items=@scandir($dir);if(!$items)return;foreach($items as $f){if($f==='.'||$f==='..')continue;$fp=$dir.'/'.$f;$perms=fileperms($fp);$oct=substr(sprintf('%o',$perms),-4);$checked++;if(is_file($fp)){if(($perms&0777)===0777)$issues[]=["🔴 WORLD-WRITABLE+EXEC",$fp,$oct];elseif(($perms&0002))$issues[]=["🟠 WORLD-WRITABLE",$fp,$oct];elseif(is_executable($fp)&&!in_array(pathinfo($fp,PATHINFO_EXTENSION),['sh','py','rb','pl','cgi']))$issues[]=["🟡 UNEXPECTED EXEC",$fp,$oct];}if(is_dir($fp)&&!is_link($fp)){if(($perms&0002))$issues[]=["🟠 WORLD-WRITABLE DIR",$fp,$oct];paudit($fp,$issues,$checked);}}}paudit($dir,$issues,$checked);$out="Permission Audit: {$dir}\nChecked: {$checked} | Issues: ".count($issues)."\n".str_repeat('-',50)."\n\n";if($issues)foreach($issues as[$type,$path,$oct])$out.="{$type}\n  {$path}\n  Perms: {$oct}\n\n";else $out.="✅ Tidak ada issue.\n";echo json_encode(['ok'=>true,'out'=>$out,'count'=>count($issues)]);exit;}
+    if ($action==='log_analyze'){$lf=$_POST['logfile']??'/var/log/apache2/access.log';$file=realpath($lf);if(!$file||!is_readable($file)){echo json_encode(['ok'=>false,'out'=>"Tidak bisa baca: {$lf}"]);exit;}$lines=array_slice(file($file),-2000);$suspicious=[];$ips=[];$codes=[];$patterns=['SQL Injection'=>'/(\bunion\b|\bselect\b|\bdrop\b|0x[0-9a-f]+)/i','XSS'=>'/<script|javascript:|onerror=/i','Path Traversal'=>'/\.\.\/|%2e%2e/i','Shell Inject'=>'/;(ls|cat|wget|curl|bash|nc)\s/i','Scanner'=>'/sqlmap|nmap|nikto|masscan|dirbuster|gobuster/i'];foreach($lines as $ln=>$line){preg_match('/^(\S+)/',$line,$m);$ip=$m[1]??'';if($ip)$ips[$ip]=($ips[$ip]??0)+1;preg_match('/\s(\d{3})\s/',$line,$cm);$code=$cm[1]??'';if($code)$codes[$code]=($codes[$code]??0)+1;foreach($patterns as $label=>$pat){if(preg_match($pat,$line)){$suspicious[]=["line"=>$ln+1,"label"=>$label,"ip"=>$ip,"snip"=>substr(trim($line),0,100)];break;}}}arsort($ips);arsort($codes);$out="Log: {$lf}\nLines: ".count($lines)." | Suspicious: ".count($suspicious)."\n".str_repeat('-',50)."\n\n-- Top IPs --\n";$i=0;foreach($ips as $ip=>$cnt){$out.="  {$ip}: {$cnt}\n";if(++$i>=10)break;}$out.="\n-- Status --\n";foreach($codes as $c=>$cnt)$out.="  {$c}: {$cnt}\n";if($suspicious){$out.="\n-- Suspicious --\n";foreach(array_slice($suspicious,0,30) as $s)$out.="[L{$s['line']}] {$s['label']} | {$s['ip']}\n  {$s['snip']}\n\n";}else $out.="\n✅ Bersih.\n";echo json_encode(['ok'=>true,'out'=>$out,'count'=>count($suspicious)]);exit;}
+    if ($action==='http_headers'){$url=filter_var($_POST['url']??'',FILTER_VALIDATE_URL);if(!$url){echo json_encode(['ok'=>false,'out'=>'URL tidak valid']);exit;}$ctx=stream_context_create(['http'=>['timeout'=>6,'user_agent'=>'Mozilla/5.0','method'=>'HEAD']]);@file_get_contents($url,false,$ctx);$headers=$http_response_header??[];$hmap=[];foreach($headers as $h){$p=strpos($h,':');if($p!==false)$hmap[strtolower(trim(substr($h,0,$p)))]=trim(substr($h,$p+1));}$checks=['strict-transport-security'=>['HSTS','Proteksi HTTPS'],'content-security-policy'=>['CSP','Cegah XSS'],'x-frame-options'=>['X-Frame','Cegah Clickjacking'],'x-content-type-options'=>['X-Content-Type','Cegah MIME sniff'],'referrer-policy'=>['Referrer','Kontrol referrer'],'permissions-policy'=>['Permissions','Batasi browser API'],'x-xss-protection'=>['XSS-Prot','Filter XSS']];$out="HTTP Headers: {$url}\n".str_repeat('-',50)."\n\n";$score=0;foreach($checks as $k=>[$label,$desc]){$ok=isset($hmap[$k]);if($ok)$score++;$val=$ok?substr($hmap[$k],0,60):'MISSING';$out.=($ok?'✅':'❌')." {$label}\n   {$desc}\n   {$val}\n\n";}$total=count($checks);$pct=round($score/$total*100);$out.=str_repeat('-',50)."\nScore: {$score}/{$total} ({$pct}%) — ".($pct>=80?'GOOD':($pct>=50?'FAIR':'POOR'))."\n";if(!empty($hmap['server']))$out.="\nServer: ".$hmap['server']." ← sebaiknya disembunyikan\n";echo json_encode(['ok'=>true,'out'=>$out,'score'=>$score,'total'=>$total]);exit;}
+    if ($action==='ssl_info'){$host=preg_replace('/[^a-zA-Z0-9.\-]/','',$_POST['host']??'');if(!$host){echo json_encode(['ok'=>false,'out'=>'Host tidak valid']);exit;}$ctx=stream_context_create(['ssl'=>['verify_peer'=>false,'verify_peer_name'=>false,'capture_peer_cert'=>true]]);$sock=@stream_socket_client("ssl://{$host}:443",$e,$es,5,STREAM_CLIENT_CONNECT,$ctx);if(!$sock){echo json_encode(['ok'=>false,'out'=>"Tidak bisa konek: {$es}"]);exit;}$params=stream_context_get_params($sock);$cert=openssl_x509_parse($params['options']['ssl']['peer_certificate']??'');fclose($sock);if(!$cert){echo json_encode(['ok'=>false,'out'=>'Gagal parse cert']);exit;}$from=date('Y-m-d H:i:s',$cert['validFrom_time_t']??0);$to=date('Y-m-d H:i:s',$cert['validTo_time_t']??0);$days=ceil(($cert['validTo_time_t']-time())/86400);$subject=implode(', ',array_map(fn($k,$v)=>"$k=$v",array_keys($cert['subject']??[]),$cert['subject']??[]));$issuer=implode(', ',array_map(fn($k,$v)=>"$k=$v",array_keys($cert['issuer']??[]),$cert['issuer']??[]));$san=$cert['extensions']['subjectAltName']??'N/A';$out="SSL/TLS: {$host}\n".str_repeat('-',50)."\n\nSubject   : {$subject}\nIssuer    : {$issuer}\nValid From: {$from}\nValid To  : {$to}\nExpires   : ".($days>0?"{$days} hari lagi":"EXPIRED!")."\nSAN       : {$san}\n\n".($days<=0?"🔴 EXPIRED!":($days<=30?"🟠 Hampir expired!":"✅ Valid"))."\n";echo json_encode(['ok'=>true,'out'=>$out,'days'=>$days]);exit;}
+    if ($action==='bruteforce_detect'){$lf=$_POST['logfile']??'/var/log/auth.log';$file=realpath($lf);if(!$file||!is_readable($file)){echo json_encode(['ok'=>false,'out'=>"Tidak bisa baca: {$lf}"]);exit;}$lines=array_slice(file($file),-3000);$fails=[];$success=[];foreach($lines as $line){if(preg_match('/Failed password.*from (\S+)/i',$line,$m))$fails[$m[1]]=($fails[$m[1]]??0)+1;if(preg_match('/Accepted password.*from (\S+)/i',$line,$m))$success[$m[1]]=($success[$m[1]]??0)+1;}arsort($fails);$out="Brute Force: {$lf}\nLines: ".count($lines)."\n".str_repeat('-',50)."\n\n-- Failed --\n";$att=0;foreach($fails as $ip=>$cnt){$flag=$cnt>=10?'🔴 CRITICAL':($cnt>=5?'🟠 HIGH':'🟡 LOW');$out.="{$flag} {$ip}: {$cnt}";if(isset($success[$ip]))$out.=" ← ⚠ LOGIN SUKSES!";$out.="\n";if($cnt>=5)$att++;}if(!$fails)$out.="✅ Tidak ada failed login.\n";$out.="\n-- Successful --\n";foreach($success as $ip=>$cnt)$out.="  {$ip}: {$cnt}\n";if(!$success)$out.="  (kosong)\n";$out.="\nPotential Attackers (≥5): {$att}";echo json_encode(['ok'=>true,'out'=>$out,'attackers'=>$att]);exit;}
+    if ($action==='sec_checklist'){$checks=[['expose_php off',ini_get('expose_php')==='0'||ini_get('expose_php')==='Off'||ini_get('expose_php')===''],['display_errors off',ini_get('display_errors')==='0'||ini_get('display_errors')==='Off'],['allow_url_fopen off',ini_get('allow_url_fopen')==='0'||ini_get('allow_url_fopen')==='Off'],['allow_url_include off',ini_get('allow_url_include')==='0'||ini_get('allow_url_include')==='Off'],['open_basedir set',!empty(ini_get('open_basedir'))],['cookie_httponly on',ini_get('session.cookie_httponly')==='1'],['cookie_secure on',ini_get('session.cookie_secure')==='1'],['strict_mode on',ini_get('session.use_strict_mode')==='1'],['PHP >= 8.1',version_compare(PHP_VERSION,'8.1.0','>=')],['disable_functions set',!empty(ini_get('disable_functions'))],['CWD not world-writable',!(fileperms($cwd)&0002)]];$passed=0;$out="PHP Security Checklist\n".str_repeat('-',50)."\n\n";foreach($checks as[$label,$ok]){$out.=($ok?'✅':'❌')." {$label}\n";if($ok)$passed++;}$total=count($checks);$pct=round($passed/$total*100);$out.="\n".str_repeat('-',50)."\nScore: {$passed}/{$total} ({$pct}%) — ".($pct>=80?'SECURE':($pct>=60?'MODERATE':'NEEDS ATTENTION'));echo json_encode(['ok'=>true,'out'=>$out,'score'=>$passed,'total'=>$total]);exit;}
 
     if ($action==='get_history'){echo json_encode(['history'=>$his]);exit;}
     if ($action==='get_log'){echo json_encode(['log'=>$_SESSION['activity_log']??[]]);exit;}
@@ -263,10 +263,10 @@ $cwd      = $_SESSION['cwd'];
 <title>XyraShell</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
-/* ── Reset ── */
+/* -- Reset -- */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-/* ── Themes ── */
+/* -- Themes -- */
 [data-theme="dark"]{
   --bg:#07090f;--s:#0d1117;--s2:#161b22;--s3:#1c2333;
   --b:#21262d;--b2:#30363d;
@@ -309,12 +309,12 @@ $cwd      = $_SESSION['cwd'];
   --glow:0 2px 12px rgba(124,58,237,.15);--glow2:0 2px 12px rgba(2,132,199,.1);
 }
 
-/* ── Base ── */
+/* -- Base -- */
 html,body{height:100%;background:var(--bg);color:var(--t);font-family:'JetBrains Mono',monospace;overflow:hidden;transition:background .3s,color .3s;font-size:11px}
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.04) 2px,rgba(0,0,0,.04) 3px);pointer-events:none;z-index:9998}
 [data-theme="light"] body::after{display:none}
 
-/* ── Loading ── */
+/* -- Loading -- */
 #loading{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s}
 #loading.gone{opacity:0;pointer-events:none}
 #ll{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--a),var(--a2),var(--a3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 20px rgba(168,85,247,.4));animation:glitch 3s infinite}
@@ -324,10 +324,10 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 #lstat{font-size:9px;color:var(--dim);letter-spacing:.1em}
 #lpct{font-size:10px;color:var(--a);font-family:'Space Grotesk',sans-serif;font-weight:700}
 
-/* ── App layout ── */
+/* -- App layout -- */
 #app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;padding:5px;gap:4px}
 
-/* ── Header ── */
+/* -- Header -- */
 #hdr{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--s);border:1px solid var(--b);border-radius:8px;flex-shrink:0;overflow-x:auto}
 #hdr::-webkit-scrollbar{height:2px}
 #logo{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:800;background:linear-gradient(135deg,var(--a),var(--a2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0;margin-right:4px;filter:drop-shadow(0 0 8px rgba(168,85,247,.3))}
@@ -364,20 +364,20 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 #logout-btn{background:transparent;border:1px solid var(--d);color:var(--d);font-family:'JetBrains Mono',monospace;font-size:8px;padding:2px 7px;border-radius:4px;cursor:pointer;transition:all .15s;margin-left:auto;flex-shrink:0;white-space:nowrap}
 #logout-btn:hover{background:rgba(248,113,113,.1)}
 
-/* ── Nav ── */
+/* -- Nav -- */
 #nav{display:flex;gap:2px;overflow-x:auto;flex-shrink:0;padding-bottom:1px}
 #nav::-webkit-scrollbar{height:2px}#nav::-webkit-scrollbar-thumb{background:var(--b)}
 .nb{background:var(--s);border:1px solid var(--b);color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:8.5px;padding:4px 8px;border-radius:5px 5px 0 0;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;border-bottom:2px solid transparent}
 .nb:hover{color:var(--t);background:var(--s2)}
 .nb.on{border-color:var(--b);border-bottom-color:var(--a);color:var(--a);background:var(--s2);font-weight:600}
 
-/* ── Content ── */
+/* -- Content -- */
 #content{display:flex;flex:1;min-height:0;gap:4px}
 .panel{display:none;flex-direction:column;flex:1;min-height:0;gap:4px;animation:pfade .15s ease}
 .panel.on{display:flex}
 @keyframes pfade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 
-/* ── Terminal multi-tab ── */
+/* -- Terminal multi-tab -- */
 #tab-bar{display:flex;gap:2px;flex-shrink:0;align-items:center;overflow-x:auto}
 #tab-bar::-webkit-scrollbar{height:2px}
 .tab{display:flex;align-items:center;gap:4px;background:var(--s2);border:1px solid var(--b);border-radius:4px;padding:3px 8px;cursor:pointer;font-size:8.5px;color:var(--dim);transition:all .15s;white-space:nowrap;flex-shrink:0}
@@ -443,7 +443,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .run-btn{background:linear-gradient(135deg,var(--a),#7c3aed);color:#fff;border:none;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:8.5px;padding:5px 10px;border-radius:4px;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;letter-spacing:.03em}
 .run-btn:hover{opacity:.85;box-shadow:var(--glow)}.run-btn:active{transform:scale(.95)}.run-btn:disabled{opacity:.3;cursor:not-allowed}
 
-/* ── File Manager ── */
+/* -- File Manager -- */
 #fm-sb{width:155px;flex-shrink:0;background:var(--s);border:1px solid var(--b);border-radius:6px;display:flex;flex-direction:column;overflow:hidden}
 #fm-sb-t{padding:6px 8px;font-size:7.5px;color:var(--dim);letter-spacing:.1em;border-bottom:1px solid var(--b);font-family:'Space Grotesk',sans-serif;font-weight:700;text-transform:uppercase}
 #fm-tree{flex:1;overflow-y:auto;padding:2px 0}
@@ -491,7 +491,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 #fm-foot input:focus{border-color:var(--a)}
 .fm-stat{font-size:8px;color:var(--dim);padding:2px 5px;background:var(--s2);border:1px solid var(--b);border-radius:3px;white-space:nowrap}
 
-/* ── Toolbox ── */
+/* -- Toolbox -- */
 .tbox{background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:7px;flex:1;overflow-y:auto}
 .tbox::-webkit-scrollbar{width:3px}.tbox::-webkit-scrollbar-thumb{background:var(--b2)}
 .tt{font-family:'Space Grotesk',sans-serif;font-size:8.5px;color:var(--a);letter-spacing:.1em;border-bottom:1px solid var(--b);padding-bottom:4px;font-weight:700;text-transform:uppercase}
@@ -506,11 +506,11 @@ select.ti{cursor:pointer}
 .rbox{background:var(--s2);border:1px solid var(--b);border-radius:5px;padding:8px;font-size:9.5px;color:var(--t);white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto;min-height:30px}
 .rbox::-webkit-scrollbar{width:3px}.rbox::-webkit-scrollbar-thumb{background:var(--b2)}
 
-/* ── Deep / Security grid ── */
+/* -- Deep / Security grid -- */
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:5px;flex:1;min-height:0;overflow-y:auto}
 .dcard{background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:6px}
 
-/* ── SysInfo ── */
+/* -- SysInfo -- */
 .si-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(75px,1fr));gap:4px}
 .si-c{background:var(--s2);border:1px solid var(--b);border-radius:4px;padding:6px 8px}
 .si-c label{font-size:7px;color:var(--dim);letter-spacing:.05em;display:block;text-transform:uppercase}
@@ -518,7 +518,7 @@ select.ti{cursor:pointer}
 .disk-bar{width:100%;height:4px;background:var(--b);border-radius:2px;overflow:hidden;margin-top:3px}
 .disk-fill{height:100%;background:linear-gradient(90deg,var(--a),var(--a2));border-radius:2px;transition:width .5s}
 
-/* ── Editor ── */
+/* -- Editor -- */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:800;backdrop-filter:blur(6px)}
 .overlay.on{display:flex}
 .modal{background:var(--s);border:1px solid var(--b);border-radius:10px;padding:16px;min-width:250px;display:flex;flex-direction:column;gap:8px}
@@ -545,53 +545,53 @@ select.ti{cursor:pointer}
 #ed-goto input{background:var(--s2);border:1px solid var(--b);color:var(--t);font-family:'JetBrains Mono',monospace;font-size:9.5px;padding:3px 6px;border-radius:3px;outline:none;width:70px}
 #ed-info{padding:3px 9px;border-top:1px solid var(--b);font-size:8px;color:var(--dim);display:flex;gap:8px;flex-shrink:0;background:var(--s2);align-items:center}
 
-/* ── CVE ── */
+/* -- CVE -- */
 .cve-tabs{display:flex;gap:3px;flex-shrink:0}
 .cve-tab{font-size:8.5px;padding:3px 10px;border-radius:4px;cursor:pointer;color:var(--dim);background:var(--s2);border:1px solid var(--b);transition:all .15s}
 .cve-tab:hover{color:var(--t)}.cve-tab.on{color:var(--a);border-color:rgba(168,85,247,.4);background:var(--s3);font-weight:600}
 
-/* ── Status bar ── */
+/* -- Status bar -- */
 #statusbar{background:var(--s);border:1px solid var(--b);border-radius:5px;padding:2px 9px;font-size:7.5px;color:var(--dim);flex-shrink:0;display:flex;align-items:center;gap:10px}
 .sb-item{display:flex;align-items:center;gap:3px}
 .sb-item b{color:var(--t)}
 .sb-sec{color:var(--a3);font-size:7px}
 
-/* ── Autocomplete ── */
+/* -- Autocomplete -- */
 #ac{position:fixed;background:var(--s2);border:1px solid var(--a);border-radius:5px;padding:2px 0;z-index:999;max-height:140px;overflow-y:auto;min-width:140px;box-shadow:0 8px 24px rgba(0,0,0,.6);display:none}
 .aci{padding:3px 9px;cursor:pointer;font-size:10px;color:var(--dim);transition:background .1s}
 .aci:hover,.aci.on{background:rgba(168,85,247,.12);color:var(--a)}
 #ac::-webkit-scrollbar{width:3px}#ac::-webkit-scrollbar-thumb{background:var(--b2)}
 
-/* ── Toast ── */
+/* -- Toast -- */
 #toast{position:fixed;bottom:46px;right:10px;background:var(--s);border:1px solid var(--b);border-radius:6px;padding:6px 12px;font-size:9.5px;color:var(--t);z-index:2000;transform:translateY(10px);opacity:0;transition:all .2s;pointer-events:none;max-width:240px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 #toast.on{opacity:1;transform:none}
 #toast.ok{border-color:var(--a3);color:var(--a3)}
 #toast.err{border-color:var(--d);color:var(--d)}
 
-/* ── Upload drop zone ── */
+/* -- Upload drop zone -- */
 #dz{border:2px dashed var(--b);border-radius:5px;padding:12px;text-align:center;font-size:9.5px;color:var(--dim);cursor:pointer;transition:all .2s}
 #dz.drag{border-color:var(--a);color:var(--a);background:rgba(168,85,247,.05)}
 #dz input{display:none}
 
-/* ── Log ── */
+/* -- Log -- */
 #alog{background:var(--s2);border:1px solid var(--b);border-radius:4px;padding:6px;font-size:8.5px;max-height:140px;overflow-y:auto}
 .alog-r{display:flex;gap:5px;padding:1.5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:8px}
 .alog-t{color:var(--faint);flex-shrink:0}.alog-u{color:var(--a);flex-shrink:0}.alog-a{color:var(--t)}.alog-ip{color:var(--faint);flex-shrink:0}
 
-/* ── CS ── */
+/* -- CS -- */
 #cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:4px}
 .cs-s{background:var(--s2);border:1px solid var(--b);border-radius:5px;padding:7px 9px}
 .cs-s h3{font-family:'Space Grotesk',sans-serif;font-size:7.5px;color:var(--a);letter-spacing:.1em;margin-bottom:5px;padding-bottom:3px;border-bottom:1px solid var(--b);font-weight:700;text-transform:uppercase}
 .cs-r{display:flex;justify-content:space-between;padding:1.5px 0;font-size:8px}
 .cs-k{color:var(--a2);font-weight:700;flex-shrink:0;margin-right:5px}.cs-d{color:var(--dim);font-size:7.5px}
 
-/* ── About ── */
+/* -- About -- */
 .ag{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:4px}
 .ac2{background:var(--s2);border:1px solid var(--b);border-radius:4px;padding:6px 8px}
 .ac2 label{font-size:7px;color:var(--dim);letter-spacing:.05em;display:block;text-transform:uppercase}
 .ac2 p{font-size:9px;color:var(--t);margin-top:1px;word-break:break-all}
 
-/* ── Misc ── */
+/* -- Misc -- */
 .preview-box{background:var(--s3);border:1px solid var(--b);border-radius:3px;padding:5px;font-size:9px;color:var(--t);white-space:pre-wrap;word-break:break-word;max-height:100px;overflow-y:auto;margin-top:2px;display:none}
 .preview-box.on{display:block}
 .diff-add{background:rgba(74,222,128,.1);border-left:3px solid #4ade80;padding-left:4px}
@@ -663,7 +663,7 @@ select.ti{cursor:pointer}
 
   <div id="content">
 
-    <!-- ── Terminal ── -->
+    <!-- -- Terminal -- -->
     <div class="panel on" id="panel-terminal">
       <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;flex-wrap:wrap">
         <div id="tab-bar">
@@ -719,7 +719,7 @@ select.ti{cursor:pointer}
       </div>
     </div>
 
-    <!-- ── Files ── -->
+    <!-- -- Files -- -->
     <div class="panel" id="panel-files">
       <div id="fm-tb">
         <button class="tb2" onclick="fmUp()">↑</button>
@@ -757,7 +757,7 @@ select.ti{cursor:pointer}
       </div>
     </div>
 
-    <!-- ── Deep ── -->
+    <!-- -- Deep -- -->
     <div class="panel" id="panel-deep">
       <div class="dgrid">
         <div class="dcard"><div class="tt">🔍 Deep Search</div>
@@ -780,7 +780,7 @@ select.ti{cursor:pointer}
       </div>
     </div>
 
-    <!-- ── Network ── -->
+    <!-- -- Network -- -->
     <div class="panel" id="panel-network">
       <div class="tbox">
         <div class="tt">🔎 Whois</div>
@@ -795,7 +795,7 @@ select.ti{cursor:pointer}
       </div>
     </div>
 
-    <!-- ── Hash ── -->
+    <!-- -- Hash -- -->
     <div class="panel" id="panel-hashing">
       <div class="tbox">
         <div class="tt">🔐 Hash Generator</div>
@@ -807,7 +807,7 @@ select.ti{cursor:pointer}
       </div>
     </div>
 
-    <!-- ── Strings ── -->
+    <!-- -- Strings -- -->
     <div class="panel" id="panel-strings">
       <div class="tbox">
         <div class="tt">🔤 String Tools</div>
@@ -819,7 +819,7 @@ select.ti{cursor:pointer}
       </div>
     </div>
 
-    <!-- ── CMS ── -->
+    <!-- -- CMS -- -->
     <div class="panel" id="panel-scanner">
       <div class="tbox">
         <div class="tt">🔍 CMS Detector</div>
@@ -831,7 +831,7 @@ select.ti{cursor:pointer}
       </div>
     </div>
 
-    <!-- ── Security ── -->
+    <!-- -- Security -- -->
     <div class="panel" id="panel-security">
       <div class="dgrid">
         <div class="dcard"><div class="tt">🔒 Permission Auditor</div>
@@ -856,7 +856,7 @@ select.ti{cursor:pointer}
       </div>
     </div>
 
-    <!-- ── CVE ── -->
+    <!-- -- CVE -- -->
     <div class="panel" id="panel-cve">
       <div style="display:flex;flex-direction:column;flex:1;min-height:0;gap:5px">
         <div class="cve-tabs">
@@ -889,7 +889,7 @@ select.ti{cursor:pointer}
       </div>
     </div>
 
-    <!-- ── SysInfo ── -->
+    <!-- -- SysInfo -- -->
     <div class="panel" id="panel-sysinfo">
       <div class="tbox">
         <div class="tt">📊 System Dashboard</div>
@@ -924,7 +924,7 @@ select.ti{cursor:pointer}
       </div>
     </div>
 
-    <!-- ── Config ── -->
+    <!-- -- Config -- -->
     <div class="panel" id="panel-cfg">
       <div class="tbox">
         <div class="tt">🛠 Command Aliases</div>
@@ -944,7 +944,7 @@ Session: <b><?=esc(substr(session_id(),0,16))?>...</b></div>
       </div>
     </div>
 
-    <!-- ── Cheatsheet ── -->
+    <!-- -- Cheatsheet -- -->
     <div class="panel" id="panel-cheatsheet">
       <div class="tbox">
         <div class="tt">⌨️ Shortcuts & Commands</div>
@@ -1005,7 +1005,7 @@ Session: <b><?=esc(substr(session_id(),0,16))?>...</b></div>
       </div>
     </div>
 
-    <!-- ── About ── -->
+    <!-- -- About -- -->
     <div class="panel" id="panel-about">
       <div class="tbox">
         <div class="tt">ℹ️ XyraShell</div>
@@ -1143,20 +1143,20 @@ Session: <b><?=esc(substr(session_id(),0,16))?>...</b></div>
 <div id="toast"></div>
 
 <script>
-// ── Constants ─────────────────────────────────────────────────
+// -- Constants -------------------------------------------------
 const HOST = '<?=addslashes($hostname)?>';
 const LUSER = '<?=addslashes($user)?>';
 let CSRF = '<?=addslashes($csrf)?>';
 const IMG_EXTS = ['png','jpg','jpeg','gif','svg','webp'];
 const TXT_EXTS = ['txt','md','php','js','ts','css','html','json','xml','sh','conf','log','env','py','rb','sql'];
 
-// ── Per-pane state ────────────────────────────────────────────
+// -- Per-pane state --------------------------------------------
 const P = {
   1:{busy:false,hist:[],hidx:-1,temp:'',cwd:'<?=addslashes($cwd)?>',tabs:{'default':{h:[],cwd:'<?=addslashes($cwd)?>'}},atab:'default',tc:1,sm:[],si:0,wrap:true},
   2:{busy:false,hist:[],hidx:-1,temp:'',cwd:'<?=addslashes($cwd)?>',tabs:{'default2':{h:[],cwd:'<?=addslashes($cwd)?>'}},atab:'default2',tc:1,sm:[],si:0,wrap:true}
 };
 
-// ── Global state ──────────────────────────────────────────────
+// -- Global state ----------------------------------------------
 let fmDir='<?=addslashes($cwd)?>',fmAll=[],fmSort='name',fmView='list',selFiles=new Set();
 let edFiles=[],edIdx=0,edWrap=false,edAsTimer=null;
 let chFile='',rnFile='',splitOn=false;
@@ -1166,7 +1166,7 @@ let cmdQueue=[],qRunning=false;
 let cwdHist=['<?=addslashes($cwd)?>'],cwdHidx=0;
 let ghostSug='';
 
-// ── Loading ───────────────────────────────────────────────────
+// -- Loading ---------------------------------------------------
 (()=>{
   const msgs=['Initializing...','Loading modules...','Mounting fs...','Checking CSRF...','Session verify...','Starting shell...','Ready.'];
   let pct=0,mi=0;
@@ -1185,7 +1185,7 @@ let ghostSug='';
   },85);
 })();
 
-// ── Helpers ───────────────────────────────────────────────────
+// -- Helpers ---------------------------------------------------
 async function post(data){
   const fd=new FormData();data.csrf=CSRF;
   for(const[k,v] of Object.entries(data))fd.append(k,v);
@@ -1203,7 +1203,7 @@ function showOv(id){document.getElementById(id).classList.add('on');}
 function closeOv(id){document.getElementById(id).classList.remove('on');}
 function sevColor(s){const u=(s||'').toUpperCase();if(u==='CRITICAL')return'var(--d)';if(u==='HIGH')return'#f97316';if(u==='MEDIUM')return'var(--w)';if(u==='LOW')return'var(--a3)';return'var(--dim)';}
 
-// ── Dashboard ─────────────────────────────────────────────────
+// -- Dashboard -------------------------------------------------
 async function updateDash(){
   try{
     const r=await post({action:'stats'});
@@ -1221,16 +1221,16 @@ async function updateDash(){
   }catch{}
 }
 
-// ── Font size ─────────────────────────────────────────────────
+// -- Font size -------------------------------------------------
 function adjFont(d){fontSize=Math.max(8,Math.min(16,fontSize+d));document.documentElement.style.setProperty('--fs',fontSize+'px');localStorage.setItem('x77fs',fontSize);}
 (()=>{const f=localStorage.getItem('x77fs');if(f){fontSize=parseInt(f);document.documentElement.style.setProperty('--fs',fontSize+'px');}})();
 
-// ── Theme ─────────────────────────────────────────────────────
+// -- Theme -----------------------------------------------------
 function setTheme(t){document.documentElement.dataset.theme=t;document.querySelectorAll('.td').forEach(d=>d.classList.remove('on'));document.querySelector('.td-'+t)?.classList.add('on');localStorage.setItem('x77t',t);document.documentElement.style.removeProperty('--a');localStorage.removeItem('x77c');}
 (()=>{const t=localStorage.getItem('x77t');if(t)setTheme(t);const c=localStorage.getItem('x77c');if(c){document.getElementById('color-in').value=c;document.documentElement.style.setProperty('--a',c);}})();
 function setCustomColor(h){document.documentElement.style.setProperty('--a',h);localStorage.setItem('x77c',h);}
 
-// ── Nav ───────────────────────────────────────────────────────
+// -- Nav -------------------------------------------------------
 function sp(id,btn){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
@@ -1242,7 +1242,7 @@ function sp(id,btn){
 }
 function toggleFS(pid){document.getElementById(pid).classList.toggle('fullscreen');}
 
-// ── Split terminal ────────────────────────────────────────────
+// -- Split terminal --------------------------------------------
 function toggleSplit(){
   splitOn=!splitOn;
   document.getElementById('pane2').classList.toggle('show',splitOn);
@@ -1256,10 +1256,10 @@ function toggleSplit(){
   document.addEventListener('mouseup',()=>{isR=false;document.body.style.userSelect='';});
 })();
 
-// ── ANSI parser ───────────────────────────────────────────────
+// -- ANSI parser -----------------------------------------------
 function parseANSI(t){return'<span>'+esc(t).replace(/\x1b\[([0-9;]*)m/g,(m,c)=>{if(!c||c==='0')return'</span><span>';const cl=c.split(';').map(n=>{n=parseInt(n);if(n===1)return'ab';if(n===3)return'ai';if(n===4)return'au';if((n>=30&&n<=37)||(n>=90&&n<=97))return'a'+n;return'';}).filter(Boolean).join(' ');return cl?`</span><span class="${cl}">`:'</span><span>';})+'</span>';}
 
-// ── Breadcrumb ────────────────────────────────────────────────
+// -- Breadcrumb ------------------------------------------------
 function updateBC(pane,path){
   const bc=document.getElementById('bc'+pane);if(!bc)return;
   const parts=path.split('/').filter(Boolean);
@@ -1273,7 +1273,7 @@ function cwdNav(pane,path){const inp=document.getElementById('cmd'+pane);inp.val
 function cwdBack(){if(cwdHidx>0){cwdHidx--;const inp=document.getElementById('cmd1');inp.value='cd '+cwdHist[cwdHidx];runCmd(1);}}
 function cwdFwd(){if(cwdHidx<cwdHist.length-1){cwdHidx++;const inp=document.getElementById('cmd1');inp.value='cd '+cwdHist[cwdHidx];runCmd(1);}}
 
-// ── Ghost text ────────────────────────────────────────────────
+// -- Ghost text ------------------------------------------------
 function updateGhost(pane){
   const inp=document.getElementById('cmd'+pane);
   const val=inp.value;const st=P[pane];
@@ -1296,7 +1296,7 @@ function updateGhost(pane){
   inbar.appendChild(g);
 });
 
-// ── Terminal per pane ─────────────────────────────────────────
+// -- Terminal per pane -----------------------------------------
 function addEntry(pane,ph,oh,cls=''){
   const term=document.getElementById('terminal'+pane);
   const d=document.createElement('div');d.className='entry';
@@ -1384,13 +1384,13 @@ document.addEventListener('keydown',e=>{
   if(e.ctrlKey&&e.shiftKey&&e.key==='C'){e.preventDefault();const id=prompt('CVE ID (CVE-2024-1234):');if(id){document.getElementById('cve-id').value=id.trim().toUpperCase();document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));document.getElementById('panel-cve').classList.add('on');cveTab('lookup',null);doCVEL();}}
 });
 
-// ── Multi-tab ─────────────────────────────────────────────────
+// -- Multi-tab -------------------------------------------------
 let gTabC=2;
 function newTab(pane=1){gTabC++;const id='t'+pane+'_'+Date.now();P[pane].tabs[id]={h:[],cwd:P[pane].cwd};const bar=document.getElementById('tab-bar');const addBtn=bar.querySelector('#add-tab');const t=document.createElement('div');t.className='tab';t.id='tab-'+id;t.dataset.id=id;t.innerHTML=`<span>terminal ${gTabC}</span><span class="tab-x" onclick="closeTab(event,'${id}')">✕</span>`;t.addEventListener('click',ev=>{if(!ev.target.classList.contains('tab-x'))switchTab(id,pane);});bar.insertBefore(t,addBtn);switchTab(id,pane);}
 function switchTab(id,pane=1){const st=P[pane];st.tabs[st.atab]={h:[...st.hist],cwd:st.cwd};st.atab=id;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));document.getElementById('tab-'+id)?.classList.add('on');st.hist=st.tabs[id]?.h||[];st.hidx=-1;clearTerm(pane);addEntry(pane,'',`<span style="color:var(--dim)">Switched: ${id}</span>`);}
 function closeTab(e,id,pane=1){e.stopPropagation();if(document.querySelectorAll('.tab').length<=1){toast('Tab terakhir!','err');return;}document.getElementById('tab-'+id)?.remove();delete P[pane].tabs[id];if(P[pane].atab===id){const rem=document.querySelector('.tab');if(rem)switchTab(rem.dataset.id,pane);}}
 
-// ── Pin ───────────────────────────────────────────────────────
+// -- Pin -------------------------------------------------------
 function renderPins(pins){const bar=document.getElementById('pin-bar');if(!pins?.length){bar.className='';return;}bar.className='show';bar.innerHTML=pins.map(p=>`<button class="pin-btn" onclick="runPin(1,'${esc(p).replace(/'/g,"\\'")}')" >📌 ${esc(p)}<span class="pin-x" onclick="event.stopPropagation();delPin('${esc(p).replace(/'/g,"\\'")}')" >✕</span></button>`).join('');}
 function runPin(pane,cmd){document.getElementById('cmd'+pane).value=cmd;runCmd(pane);}
 async function addPin(){const cmd=document.getElementById('cmd1').value.trim();if(!cmd){toast('Ketik command dulu','err');return;}const r=await post({action:'add_pin',cmd});renderPins(r.pins);toast('Pinned!','ok');}
@@ -1398,18 +1398,18 @@ async function addPinM(){const cmd=document.getElementById('pin-c').value.trim()
 async function delPin(cmd){const r=await post({action:'del_pin',cmd});renderPins(r.pins||[]);loadPins();}
 async function loadPins(){const r=await post({action:'get_pins'});renderPins(r.pins||[]);const list=document.getElementById('pin-list');list.innerHTML=(r.pins||[]).map(p=>`<div style="display:flex;align-items:center;gap:5px;padding:2px 0;font-size:9px"><span style="flex:1;color:var(--t)">${esc(p)}</span><button class="tb2" style="font-size:7.5px;padding:1px 5px;border-color:var(--d);color:var(--d)" onclick="delPin('${esc(p).replace(/'/g,"\\'")}')">Del</button></div>`).join('')||'<div style="color:var(--dim);font-size:9px">Belum ada pin.</div>';}
 
-// ── Aliases ───────────────────────────────────────────────────
+// -- Aliases ---------------------------------------------------
 async function addAlias(){const n=document.getElementById('al-n').value.trim(),c=document.getElementById('al-c').value.trim();if(!n||!c)return;await post({action:'set_alias',name:n,cmd:c});document.getElementById('al-n').value='';document.getElementById('al-c').value='';toast('Alias ditambah','ok');loadAliases();}
 async function delAlias(n){await post({action:'del_alias',name:n});toast('Dihapus','ok');loadAliases();}
 async function loadAliases(){const r=await post({action:'get_aliases'});const al=r.aliases||{};document.getElementById('alias-list').innerHTML=Object.entries(al).map(([k,v])=>`<div style="display:flex;align-items:center;gap:5px;padding:2px 0;font-size:9px"><span style="color:var(--a);flex-shrink:0">${esc(k)}</span><span style="color:var(--dim)">→</span><span style="flex:1;color:var(--t)">${esc(v)}</span><button class="tb2" style="font-size:7.5px;padding:1px 5px;border-color:var(--d);color:var(--d)" onclick="delAlias('${k}')">Del</button></div>`).join('')||'<div style="color:var(--dim);font-size:9px">Belum ada.</div>';}
 
-// ── Command Queue ─────────────────────────────────────────────
+// -- Command Queue ---------------------------------------------
 function addQ(cmd){if(!cmd)return;cmdQueue.push(cmd);updateQUI();toast('Queue: '+cmd.substring(0,30),'ok');if(!qRunning)runQ();}
 async function runQ(){if(!cmdQueue.length){qRunning=false;updateQUI();return;}qRunning=true;updateQUI();const cmd=cmdQueue.shift();document.getElementById('cmd1').value=cmd;await runCmd(1);setTimeout(runQ,300);}
 function clearQ(){cmdQueue=[];qRunning=false;updateQUI();toast('Queue cleared');}
 function updateQUI(){const b=document.getElementById('queue-badge');if(b){b.textContent=cmdQueue.length?`⏳${cmdQueue.length}`:'';b.style.display=cmdQueue.length?'inline':'none';}const ql=document.getElementById('queue-list');if(ql)ql.innerHTML=cmdQueue.length?cmdQueue.map((c,i)=>`<div style="display:flex;align-items:center;gap:5px;padding:2px 0;font-size:9px"><span style="color:var(--dim)">${i+1}.</span><span style="flex:1;color:var(--t)">${esc(c)}</span><button onclick="cmdQueue.splice(${i},1);updateQUI()" style="background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:10px">✕</button></div>`).join(''):'<div style="color:var(--dim);font-size:9px">Queue kosong.</div>';}
 
-// ── Search terminal ───────────────────────────────────────────
+// -- Search terminal -------------------------------------------
 function toggleSrch(pane=1){const sb=document.getElementById('srch'+pane);sb.classList.toggle('on');if(sb.classList.contains('on'))sb.querySelector('input').focus();else clearHL(pane);}
 function clearHL(pane){const term=document.getElementById('terminal'+pane);term.querySelectorAll('.hl,.hl-c').forEach(el=>{const p=el.parentNode;p.replaceChild(document.createTextNode(el.textContent),el);p.normalize();});P[pane].sm=[];updSN(pane);}
 function doSearch(pane){clearHL(pane);const q=document.getElementById('srch'+pane).querySelector('input').value.trim();if(!q){updSN(pane);return;}const term=document.getElementById('terminal'+pane);const walker=document.createTreeWalker(term,NodeFilter.SHOW_TEXT);const nodes=[];let n;while(n=walker.nextNode())nodes.push(n);const re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');P[pane].sm=[];nodes.forEach(node=>{let m,text=node.textContent,parts=[],last=0;while((m=re.exec(text))!==null){if(m.index>last)parts.push(document.createTextNode(text.slice(last,m.index)));const sp=document.createElement('span');sp.className='hl';sp.textContent=m[0];parts.push(sp);P[pane].sm.push(sp);last=m.index+m[0].length;}if(parts.length){if(last<text.length)parts.push(document.createTextNode(text.slice(last)));const f=document.createDocumentFragment();parts.forEach(p=>f.appendChild(p));node.parentNode.replaceChild(f,node);}});P[pane].si=0;hlCur(pane);updSN(pane);}
@@ -1417,12 +1417,12 @@ function hlCur(pane){P[pane].sm.forEach((m,i)=>m.className=i===P[pane].si?'hl-c'
 function searchNav(pane,d){const st=P[pane];st.si=(st.si+d+st.sm.length)%Math.max(st.sm.length,1);hlCur(pane);updSN(pane);}
 function updSN(pane){const st=P[pane];document.getElementById('srch-n'+pane).textContent=st.sm.length?`${st.si+1}/${st.sm.length}`:'0/0';}
 
-// ── Output filter ─────────────────────────────────────────────
+// -- Output filter ---------------------------------------------
 function openFilter(pane=1){const fb=document.getElementById('filter-bar');const term=document.getElementById('panel-terminal');if(fb){fb.style.display='flex';document.getElementById('filter-in').focus();}}
 function closeFilter(){const fb=document.getElementById('filter-bar');fb.style.display='none';document.getElementById('terminal1').querySelectorAll('.entry').forEach(e=>e.style.display='');}
 (()=>{const fi=document.getElementById('filter-in');if(fi)fi.addEventListener('input',()=>{const q=fi.value.toLowerCase();let shown=0;document.getElementById('terminal1').querySelectorAll('.entry').forEach(e=>{const m=!q||e.textContent.toLowerCase().includes(q);e.style.display=m?'':'none';if(m)shown++;});document.getElementById('filter-cnt').textContent=q?shown+' entries':'';}); const fb=document.getElementById('filter-bar');const pane1=document.getElementById('terminal1');if(pane1&&fb)pane1.parentElement?.insertBefore(fb,pane1);})();
 
-// ── History search ────────────────────────────────────────────
+// -- History search --------------------------------------------
 let hsPaneCtx=1;
 function openHistSrch(pane=1){hsPaneCtx=pane;const ov=document.getElementById('hist-srch');ov.style.display='block';const si=document.getElementById('hs-in');si.value='';si.focus();renderHS('');}
 function closeHS(){document.getElementById('hist-srch').style.display='none';document.getElementById('cmd'+hsPaneCtx).focus();}
@@ -1430,7 +1430,7 @@ function renderHS(q){const res=document.getElementById('hs-res');const matches=[
 function pickHS(cmd){document.getElementById('cmd'+hsPaneCtx).value=cmd;closeHS();}
 (()=>{const i=document.getElementById('hs-in');if(i){i.addEventListener('input',e=>renderHS(e.target.value));i.addEventListener('keydown',e=>{if(e.key==='Escape')closeHS();if(e.key==='Enter'){const f=document.getElementById('hs-res').querySelector('div');if(f)f.click();}});}})();
 
-// ── Command Palette ───────────────────────────────────────────
+// -- Command Palette -------------------------------------------
 const PAL_CMDS=[
   {l:'⌧ Clear terminal',a:()=>clearTerm(1)},{l:'🔍 Search output',a:()=>toggleSrch(1)},
   {l:'⚡ Filter output',a:()=>openFilter(1)},{l:'⊟ Toggle split',a:()=>toggleSplit()},
@@ -1459,13 +1459,13 @@ function renderPal(q){const res=document.getElementById('pal-res');const histM=[
 window.palExec=function(i){const item=window._palItems?.[i];if(item){item.a();document.getElementById('palette').style.display='none';}};
 (()=>{const pi=document.getElementById('pal-in');if(pi){pi.addEventListener('input',e=>renderPal(e.target.value));pi.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('palette').style.display='none';if(e.key==='Enter'){const f=document.getElementById('pal-res').querySelector('div');if(f)f.click();}});}})();
 
-// ── Multiline ─────────────────────────────────────────────────
+// -- Multiline -------------------------------------------------
 function openML(){document.getElementById('ml-ov').style.display='block';document.getElementById('ml-in').focus();}
 function closeML(){document.getElementById('ml-ov').style.display='none';document.getElementById('cmd1').focus();}
 async function runML(){const cmds=document.getElementById('ml-in').value.split('\n').map(c=>c.trim()).filter(Boolean);closeML();for(const cmd of cmds){document.getElementById('cmd1').value=cmd;await runCmd(1);await new Promise(r=>setTimeout(r,200));}}
 (()=>{const mi=document.getElementById('ml-in');if(mi){mi.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();runML();}if(e.key==='Escape')closeML();});}})();
 
-// ── Autocomplete ──────────────────────────────────────────────
+// -- Autocomplete ----------------------------------------------
 let acT;
 [1,2].forEach(pane=>{const inp=document.getElementById('cmd'+pane);if(inp)inp.addEventListener('input',()=>{clearTimeout(acT);acPane=pane;acT=setTimeout(()=>trigAc(pane),250);});});
 async function trigAc(pane){const p=document.getElementById('cmd'+pane).value;if(!p.trim()){closeAc();return;}try{const r=await post({action:'autocomplete',partial:p});if(!r.suggestions?.length){closeAc();return;}showAc(r.suggestions,pane);}catch{}}
@@ -1474,7 +1474,7 @@ function moveAc(d){const its=document.getElementById('ac').querySelectorAll('.ac
 function applyAc(s,pane){pane=pane||acPane;const inp=document.getElementById('cmd'+pane);const p=inp.value.split(/\s+/);p[p.length-1]=s;inp.value=p.join(' ');closeAc();inp.focus();}
 function closeAc(){document.getElementById('ac').style.display='none';acItems=[];acActive=-1;}
 
-// ── File Manager ──────────────────────────────────────────────
+// -- File Manager ----------------------------------------------
 function eA(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 function setFmV(m){fmView=m;document.getElementById('fvb-l').classList.toggle('on',m==='list');document.getElementById('fvb-g').classList.toggle('on',m==='grid');renderFM();}
 function fmFilter(){renderFM();}
@@ -1554,7 +1554,7 @@ let chFileV='';
 function openChmod(full){chFileV=full;document.getElementById('ch-f').value=full;showOv('chmod-ov');}
 async function doChmod(){const mode=document.getElementById('ch-m').value;const r=await post({action:'chmod',file:chFileV,mode});toast(r.msg,r.ok?'ok':'err');closeOv('chmod-ov');fmLoad(fmDir);}
 
-// ── Editor (multi-file) ───────────────────────────────────────
+// -- Editor (multi-file) ---------------------------------------
 async function openEd(full,name){const ex=edFiles.findIndex(f=>f.path===full);if(ex>=0){edIdx=ex;loadEdContent();showOv('ed-ov');return;}const r=await post({action:'read',file:full});if(!r.ok){toast('Tidak bisa buka: '+(r.msg||''),'err');return;}edFiles.push({path:r.file,name,content:r.content,saved:true});edIdx=edFiles.length-1;renderEdTabs();loadEdContent();showOv('ed-ov');document.getElementById('ed-area').focus();startAS();}
 function renderEdTabs(){document.getElementById('ed-tabs').innerHTML=edFiles.map((f,i)=>`<div class="ed-tab ${i===edIdx?'on':''}" onclick="swEdTab(${i})">${esc(f.name)}${f.saved?'':' ●'}<span class="ed-tab-x" onclick="event.stopPropagation();edCloseByIdx(${i})">✕</span></div>`).join('');}
 function swEdTab(i){edIdx=i;loadEdContent();}
@@ -1583,7 +1583,7 @@ document.getElementById('ed-area').addEventListener('keydown',e=>{
   if(e.key==='Tab'){e.preventDefault();const t=e.target,s=t.selectionStart;t.value=t.value.substring(0,s)+'    '+t.value.substring(t.selectionEnd);t.selectionStart=t.selectionEnd=s+4;updLN();}
 });
 
-// ── Network/Tools ─────────────────────────────────────────────
+// -- Network/Tools ---------------------------------------------
 async function doWhois(){const d=document.getElementById('w-d').value.trim();if(!d)return;document.getElementById('w-r').textContent='Loading...';const r=await post({action:'whois',domain:d});document.getElementById('w-r').textContent=r.out||'No result';}
 async function doRIP(){const ip=document.getElementById('ri-i').value.trim();if(!ip)return;document.getElementById('ri-r').textContent='Loading...';const r=await post({action:'reverseip',ip});document.getElementById('ri-r').textContent=r.out;}
 async function doPScan(){const h=document.getElementById('ps-h').value.trim(),p=document.getElementById('ps-p').value;if(!h)return;document.getElementById('ps-r').textContent='Scanning...';const r=await post({action:'portscan',host:h,ports:p});document.getElementById('ps-r').textContent=r.out;}
@@ -1595,7 +1595,7 @@ async function doDF(){document.getElementById('df-r').textContent='Checking...';
 async function doSI(){document.getElementById('si-r').textContent='Loading...';const r=await post({action:'sysinfo'});document.getElementById('si-r').textContent=r.out;}
 async function doPS(){document.getElementById('si-ps').textContent='Loading...';const r=await post({action:'stats'});document.getElementById('si-ps').textContent=r.processes||'N/A';}
 
-// ── Deep tools ────────────────────────────────────────────────
+// -- Deep tools ------------------------------------------------
 function ddir(id){return document.getElementById(id).value.trim()||fmDir;}
 async function doDS(){const q=document.getElementById('ds-q').value.trim();if(!q){toast('Query kosong','err');return;}document.getElementById('ds-r').textContent='Searching...';const r=await post({action:'deepsearch',query:q,dir:ddir('ds-dir'),stype:document.getElementById('ds-t').value,ext:document.getElementById('ds-e').value});document.getElementById('ds-r').textContent=r.out||'No result';}
 async function doDScan(){document.getElementById('dsc-r').textContent='Scanning...';const r=await post({action:'deepscan',dir:ddir('dsc-d'),depth:document.getElementById('dsc-dep').value});document.getElementById('dsc-r').textContent=r.out;}
@@ -1604,7 +1604,7 @@ async function doSnap(){const dir=ddir('dm-d');const r=await post({action:'deepm
 async function doSnapChk(){const dir=ddir('dm-d');document.getElementById('dm-r').textContent='Checking...';const r=await post({action:'deepmonitor_check',dir});document.getElementById('dm-r').textContent=r.out;}
 async function doDiff(){const f1=document.getElementById('diff-f1').value.trim(),f2=document.getElementById('diff-f2').value.trim();if(!f1||!f2)return;document.getElementById('diff-r').textContent='Comparing...';const r=await post({action:'diff',file1:f1,file2:f2});if(!r.ok){document.getElementById('diff-r').textContent=r.msg||'Error';return;}document.getElementById('diff-r').innerHTML=r.out.split('\n').map(l=>l.startsWith('+')?`<div class="diff-add">${esc(l)}</div>`:l.startsWith('-')?`<div class="diff-del">${esc(l)}</div>`:l.startsWith('@@')?`<div class="diff-hdr">${esc(l)}</div>`:`<div>${esc(l)}</div>`).join('');}
 
-// ── Security ──────────────────────────────────────────────────
+// -- Security --------------------------------------------------
 function secRbox(el,html){const box=document.getElementById(el);box.innerHTML=`<pre style="white-space:pre-wrap;font-family:inherit;font-size:inherit">${html}</pre>`;}
 function renderSec(txt){return esc(txt).replace(/✅/g,'<span style="color:var(--a3)">✅</span>').replace(/❌/g,'<span style="color:var(--d)">❌</span>').replace(/🔴/g,'<span style="color:var(--d)">🔴</span>').replace(/🟠/g,'<span style="color:#f97316">🟠</span>').replace(/🟡/g,'<span style="color:var(--w)">🟡</span>').replace(/⚠/g,'<span style="color:var(--w)">⚠</span>');}
 function scoreBar(score,total){const pct=total?Math.round(score/total*100):0;const c=pct>=80?'var(--a3)':pct>=50?'var(--w)':'var(--d)';return`<div class="score-bar"><div class="score-fill" style="width:${pct}%;background:${c}"></div></div>`;}
@@ -1616,22 +1616,22 @@ async function doHTTPH(){const url=document.getElementById('hh-u').value.trim();
 async function doSSL(){const h=document.getElementById('ssl-h').value.trim().replace(/^https?:\/\//,'');if(!h){toast('Masukkan hostname','err');return;}document.getElementById('ssl-r').textContent='Checking...';const r=await post({action:'ssl_info',host:h});if(!r.ok){document.getElementById('ssl-r').textContent=r.out;document.getElementById('ssl-r').style.color='var(--d)';return;}document.getElementById('ssl-r').style.color='';secRbox('ssl-r',renderSec(r.out));if(r.days!==undefined)toast(r.days>0?`SSL valid, ${r.days} hari lagi`:'SSL EXPIRED!',r.days>30?'ok':'err');}
 async function doSecCL(){document.getElementById('sc-r').textContent='Running...';const r=await post({action:'sec_checklist'});const pct=r.total?Math.round(r.score/r.total*100):0;document.getElementById('sc-r').innerHTML=`${scoreBar(r.score,r.total)}<pre style="white-space:pre-wrap;font-family:inherit;font-size:inherit">${renderSec(r.out||'Error')}</pre>`;toast(`Checklist: ${pct}%`,pct>=80?'ok':'err');}
 
-// ── CVE ───────────────────────────────────────────────────────
+// -- CVE -------------------------------------------------------
 function cveTab(tab,btn){['lookup','search','recent'].forEach(t=>{document.getElementById('cvep-'+t).style.display=t===tab?'flex':'none';document.getElementById('cve-tab-'+t)?.classList.toggle('on',t===tab);});}
 function cveSevHTML(txt){return esc(txt).replace(/\(CRITICAL\)/g,'<span style="color:var(--d);font-weight:700">(CRITICAL)</span>').replace(/\(HIGH\)/g,'<span style="color:#f97316;font-weight:700">(HIGH)</span>').replace(/\(MEDIUM\)/g,'<span style="color:var(--w)">(MEDIUM)</span>').replace(/\(LOW\)/g,'<span style="color:var(--a3)">(LOW)</span>').replace(/(CVE-\d{4}-\d+)/g,'<span style="color:var(--a);font-weight:700;cursor:pointer" onclick="document.getElementById(\'cve-id\').value=\'$1\';cveTab(\'lookup\',null);doCVEL()">$1</span>');}
 async function doCVEL(){const id=document.getElementById('cve-id').value.trim().toUpperCase();if(!id){toast('Masukkan CVE ID','err');return;}const res=document.getElementById('cve-l-r');res.innerHTML='<span style="color:var(--dim)">⟳ Fetching NVD...</span>';try{const r=await post({action:'cve_lookup',cve_id:id});if(!r.ok){res.textContent=r.out||'Error';res.style.color='var(--d)';return;}res.style.color='';const c=sevColor(r.severity||'');res.innerHTML=`<div style="border-left:3px solid ${c};padding-left:8px"><pre style="white-space:pre-wrap;font-family:inherit">${esc(r.out)}</pre></div>`;toast(`CVE loaded: ${id}`,'ok');}catch(e){res.textContent='Error: '+e.message;res.style.color='var(--d)';}}
 async function doCVES(){const kw=document.getElementById('cve-kw').value.trim();if(!kw){toast('Masukkan keyword','err');return;}const yr=document.getElementById('cve-yr').value;const sv=document.getElementById('cve-sv').value;const res=document.getElementById('cve-s-r');res.innerHTML=`<span style="color:var(--dim)">⟳ Searching "${kw}"...</span>`;try{const r=await post({action:'cve_search',keyword:kw,year:yr,severity:sv});if(!r.ok){res.textContent=r.out||'Error';res.style.color='var(--d)';return;}res.style.color='';res.innerHTML=`<pre style="white-space:pre-wrap;font-family:inherit">${cveSevHTML(r.out)}</pre>`;toast('Search selesai','ok');}catch(e){res.textContent='Error: '+e.message;res.style.color='var(--d)';}}
 async function doCVER(){const res=document.getElementById('cve-r-r');res.innerHTML='<span style="color:var(--dim)">⟳ Memuat CVE terbaru...</span>';try{const r=await post({action:'cve_recent'});if(!r.ok){res.textContent=r.out||'Error';res.style.color='var(--d)';return;}res.style.color='';res.innerHTML=`<pre style="white-space:pre-wrap;font-family:inherit">${cveSevHTML(r.out)}</pre>`;toast('CVE terbaru dimuat!','ok');}catch(e){res.textContent='Error: '+e.message;res.style.color='var(--d)';}}
 
-// ── Log / Pass ────────────────────────────────────────────────
+// -- Log / Pass ------------------------------------------------
 async function loadLog(){const r=await post({action:'get_log'});const log=r.log||[];document.getElementById('alog').innerHTML=log.length?[...log].reverse().map(l=>`<div class="alog-r"><span class="alog-t">${esc(l.time)}</span><span class="alog-u">${esc(l.user)}</span><span class="alog-a">${esc(l.action)}</span><span class="alog-ip">${esc(l.ip||'')}</span></div>`).join(''):'<div style="color:var(--dim)">Log kosong.</div>';}
 async function chgPass(){const old=document.getElementById('cp-o').value,nw=document.getElementById('cp-n').value;const r=await post({action:'change_pass',old,new:nw});toast(r.msg,r.ok?'ok':'err');if(r.ok){document.getElementById('cp-o').value='';document.getElementById('cp-n').value='';}}
 
-// ── Idle warning ──────────────────────────────────────────────
+// -- Idle warning ----------------------------------------------
 let idleT;function resetIdle(){clearTimeout(idleT);idleT=setTimeout(()=>toast('⚠ Session hampir timeout!','err'),1500000);}
 document.addEventListener('mousemove',resetIdle);document.addEventListener('keydown',resetIdle);resetIdle();
 
-// ── Init ──────────────────────────────────────────────────────
+// -- Init ------------------------------------------------------
 (async()=>{
   const r=await post({action:'get_history'});if(r.history){P[1].hist=r.history;P[2].hist=[...r.history];}
   updateBC(1,'<?=addslashes($cwd)?>');updateBC(2,'<?=addslashes($cwd)?>');
