@@ -1,13 +1,13 @@
-# X77Shell PRO (X77 Engine v7.1)
+# X77Shell PRO (X77 Engine v8.1)
 
 > **Advanced PHP 8.5 Web Shell for Educational & Security Auditing Purposes**
 
-![Version](https://img.shields.io/badge/version-7.1-purple)
-![License](https://img.shields.io/badge/license-MIT-blue)
+![Version](https://img.shields.io/badge/version-8.1-purple)
+![License](https://img.shields.io/badge/license-PolyForm Strict License 1.0.0-pink)
 ![PHP](https://img.shields.io/badge/PHP-8.5.5-cyan)
 ![Security](https://img.shields.io/badge/Security-CSRF+RateLimit+Stealth-red)
 
-**X77Shell PRO** (powered by the X77 Engine v7.1) is a modern PHP-based web shell optimized for **PHP 8.5.5**.  
+**X77Shell PRO** (powered by the X77 Engine v8.1) is a modern PHP-based web shell optimized for **PHP 8.5.5**.  
 This tool is specifically designed for:
 
 - Educational Cybersecurity Labs
@@ -16,7 +16,7 @@ This tool is specifically designed for:
 - Security Research Environments
 - **Advanced Penetration Testing**
 
-With a responsive Single Page Application (SPA) interface, X77Shell PRO provides advanced features including file management, multi-tab terminal emulation, real-time vulnerability intelligence (NVD API), forensic analysis, **stealth persistence**, **privilege escalation scanning**, and **red-team tooling**.
+With a responsive Single Page Application (SPA) interface, X77Shell PRO provides advanced features including file management, multi-tab terminal emulation, real-time vulnerability intelligence (NVD API), forensic analysis, **stealth persistence**, **privilege escalation scanning**, **red-team tooling**, and **advanced obfuscation (D3 Nested Eval)**.
 
 ---
 
@@ -121,17 +121,18 @@ Additional tools:
 
 ---
 
-## Stealth & Hardening (NEW in v7.1)
+## Stealth & Hardening (NEW in v8.1)
 
 - **Error suppression:** All PHP errors redirected to `/dev/null`
 - **Bash history protection:** Every command runs with `unset HISTFILE`
 - **Non-interactive sudo scanning:** No password prompts during privilege checks
 - **Zero-log footprint:** Minimal system log exposure
 - **Process renaming:** Hide shell processes as `[kworker]`
+- **Dynamic Fake Pages:** Random Cloudflare (521/500/502/503) & LiteSpeed (404/403) error pages
 
 ---
 
-## Advanced Modules (NEW in v7.1)
+## Advanced Modules (NEW in v8.1)
 
 ### Stealth Module
 - Evasion: Clear server logs (Apache, Nginx, Syslog, Auth)
@@ -146,18 +147,18 @@ Additional tools:
 - DNS tunneling via nslookup exfiltration
 - Data fragmentation with randomized delays
 
-### 🔀 Lateral Movement Module
+### Lateral Movement Module
 - Credential harvesting (/etc/passwd, /etc/shadow, SSH keys, AWS credentials)
 - Network scanning with nmap
 
-### 🧹 Cleanup Module
+### Cleanup Module
 - Log wiping (Apache, Nginx, Syslog, Auth)
 - Shell history shredding
 - Secure file deletion
 
 ---
 
-## 6 Upgrade Features (NEW in v7.1)
+## 6 Upgrade Features (NEW in v8.1)
 
 | No | Feature | Description |
 |----|---------|-------------|
@@ -170,7 +171,7 @@ Additional tools:
 
 ---
 
-## Rootkit Toolkit (NEW in v7.1)
+## Rootkit Toolkit (NEW in v8.1)
 
 - **Install Rootkit:** Spawn hidden process, kill monitoring agents, disable SELinux/AppArmor, set `chattr +i`, LD_PRELOAD persistence, rename process to `[kworker]`
 - **Hide + Lock File:** Rename file to hidden (`.filename`) and set immutable
@@ -178,7 +179,22 @@ Additional tools:
 
 ---
 
-## Extra Utilities (NEW in v7.1)
+## Xyra Classic Modules
+
+- **Mass Deface:** Mass replace content of `.html`, `.php`, `.js`, `.txt` files (Specific folder or entire Desktop).
+- **Mass Delete:** Recursive delete all files in a target directory.
+- **Drop AdminNeo:** Auto-download and extract AdminNeo v5.8.0 (PHP-based database manager).
+- **Create RDP:** Create a new Windows Remote Desktop user (Admin + RDP group).
+- **Cpanel Reset:** Simulated cPanel password reset via email.
+- **Mailer:** Send email via PHP `mail()` function.
+- **Zone-H Notifier:** Notify Zone-H about a defaced domain.
+- **CSRF Uploader:** Simulate CSRF file upload attack.
+- **Network Tools:** Back-connect (reverse shell) or Bind shell.
+- **Lock Shell:** Set shell file to read-only (`chmod 444`).
+
+---
+
+## Extra Utilities (NEW in v8.1)
 
 - **System Monitor:** View uptime, load, memory, disk, ports, processes, services, I/O, connections
 - **Cloud Sync:** Upload files to remote server via POST
@@ -225,7 +241,7 @@ The web server user must have read/write access to the target directory.
 
 ## 1. Deployment
 
-Upload the `shell.php` file (or an obfuscated filename) to the target web server directory.
+Upload the `wowok.php` file (or an obfuscated filename) to the target web server directory.
 
 ## 2. Access
 
@@ -285,7 +301,7 @@ $IP_WHITELIST = ['192.168.1.100', '10.0.0.5'];
 
 # 🔄 Changelog
 
-## v7.1 (Current)
+## v8.1 (Current)
 - ✅ Full stealth hardening (error suppression, bash history disable)
 - ✅ Advanced Modules (Stealth, Persistence, Resilience, Lateral, Cleanup)
 - ✅ 6 Upgrade Features (Auto Privesc, Watchdog, Memory Payload, Obfuscator, Timestomp, SSH Inject)
@@ -327,10 +343,10 @@ See the `LICENSE` file for more information.
 ## Developer Information
 
 **Developed by:** Xyra-Company / Xyra77  
-**Version:** 7.1  
+**Version:** 8.1  
 **PHP Requirement:** 8.5.5+  
 **Last Updated:** August 2026
 
 ---
 
-**🔥 X77Shell PRO v7.1 — Silent. Stealth. Lethal.**
+**🔥 X77Shell PRO v8.1 Silent. Stealth. Lethal.**
