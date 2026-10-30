@@ -3,7 +3,7 @@
 > **Advanced PHP 8.5 Web Shell for Educational & Security Auditing Purposes**
 
 ![Version](https://img.shields.io/badge/version-8.1-purple)
-![License](https://img.shields.io/badge/license-PolyForm Strict License 1.0.0-pink)
+![License](https://img.shields.io/badge/license-PolyForm_Strict_1.0.0-pink)
 ![PHP](https://img.shields.io/badge/PHP-8.5.5-cyan)
 ![Security](https://img.shields.io/badge/Security-CSRF+RateLimit+Stealth-red)
 
